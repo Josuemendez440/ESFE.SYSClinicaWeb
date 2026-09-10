@@ -1,0 +1,140 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Mis Citas - Curavita";
+    string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/citas.css?v=1.1" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-container">
+        <!-- Menú Lateral Sidebar -->
+        <aside class="sidebar">
+            <div>
+                <div class="brand">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    <span>Curavita</span>
+                </div>
+                <nav class="nav-menu">
+                    <a href="@Url.Action("Inicio", "Account")" class="nav-item @(currentAction.Equals("Inicio", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="@Url.Action("Citas", "Account")" class="nav-item active">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span>Mis Citas</span>
+                    </a>
+                    <a href="@Url.Action("Agendar", "Account")" class="nav-item @(currentAction.Equals("Agendar", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Agendar Cita</span>
+                    </a>
+                    <a href="@Url.Action("Expedientes", "Account")" class="nav-item @(currentAction.Equals("Expedientes", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <span>Gestión de Expedientes</span>
+                    </a>
+                    <a href="@Url.Action("Consulta", "Account")" class="nav-item @(currentAction.Equals("Consulta", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2h-.2ZM17 21a2 2 0 0 0 4-4v-3h-4v7ZM3 10h4V3H3v7ZM12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5Z" /></svg>
+                        <span>Consulta Médica</span>
+                    </a>
+                    <a href="@Url.Action("Facturacion", "Account")" class="nav-item @(currentAction.Equals("Facturacion", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                        <span>Módulo de Facturación</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="sidebar-footer">
+                <button type="button" id="btnOpenLogout" class="btn-logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <main class="main-content">
+            <header class="top-header">
+                <h1 class="page-title">Gestión de Citas</h1>
+                <div class="user-pill">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Paciente</span>
+                </div>
+            </header>
+
+            <section class="content-body">
+                <!-- Banner de Bienvenida -->
+                <div class="welcome-banner">
+                    <div class="banner-text">
+                        <h2>¡Hola, Paciente!</h2>
+                        <p>Revisa el estado de tus citas o programa una nueva consulta médica.</p>
+                    </div>
+                    <a href="@Url.Action("Agendar", "Account")" class="btn-banner">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Agendar Cita</span>
+                    </a>
+                </div>
+
+                <!-- Tarjeta de Contenedor de Citas -->
+                <div class="citas-card">
+                    <h3 class="citas-title">Próximas Citas Programadas</h3>
+
+                    <div class="citas-list">
+                        <!-- Cita 1 -->
+                        <div class="cita-item">
+                            <div class="cita-date-box">
+                                <span class="day">15</span>
+                                <span class="month">OCT</span>
+                            </div>
+                            <div class="cita-details">
+                                <h4>Cardiología</h4>
+                                <p>Dr. Carlos Mendoza • 09:00 AM</p>
+                            </div>
+                            <span class="status-badge">Confirmada</span>
+                        </div>
+
+                        <!-- Cita 2 -->
+                        <div class="cita-item">
+                            <div class="cita-date-box">
+                                <span class="day">28</span>
+                                <span class="month">NOV</span>
+                            </div>
+                            <div class="cita-details">
+                                <h4>Medicina General</h4>
+                                <p>Dra. Elena Ramos • 02:30 PM</p>
+                            </div>
+                            <span class="status-badge">Confirmada</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Confirmar Cerrar Sesión -->
+    <div id="logoutModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+            </div>
+            <h3 class="modal-title">¿Cerrar Sesión?</h3>
+            <p class="modal-desc">¿Estás seguro de que deseas salir del sistema <strong>Curavita</strong>?</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-cancel" id="btnCancelLogout">Cancelar</button>
+                <a href="@Url.Action("Login", "Account")" class="btn-modal-confirm">Sí, Cerrar Sesión</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/js/citas.js"></script>
+</body>
+</html>

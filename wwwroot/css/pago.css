@@ -1,0 +1,132 @@
+﻿* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f1f5f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.payment-card {
+    background: white;
+    padding: 35px;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    max-width: 420px;
+    width: 100%;
+    border: 1px solid #e2e8f0;
+}
+
+.payment-header {
+    text-align: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+    .payment-header h2 {
+        font-size: 1.3rem;
+        color: #0f172a;
+        margin-bottom: 8px;
+    }
+
+.amount-tag {
+    font-size: 1.1rem;
+    color: #64748b;
+    margin-top: 5px;
+}
+
+    .amount-tag strong {
+        color: #0284c7;
+        font-size: 1.3rem;
+    }
+
+.order-id {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-top: 4px;
+}
+
+.card-icons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    font-size: 2.2rem;
+    color: #64748b;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
+}
+
+    .form-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .form-group input {
+        padding: 11px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        outline: none;
+        font-size: 0.95rem;
+    }
+
+        .form-group input:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+        }
+
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+.btn-pay {
+    width: 100%;
+    padding: 12px;
+    background: #16a34a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+    .btn-pay:hover {
+        background: #15803d;
+    }
+
+.security-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}

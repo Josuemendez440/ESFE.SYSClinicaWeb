@@ -1,0 +1,62 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Crear Cuenta - Curavita";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <!-- Vinculación de CSS -->
+    <link rel="stylesheet" href="~/css/cuenta.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+    <div class="register-card">
+        <div class="register-header">
+            <h2>Curavita</h2>
+            <p>Crea tu cuenta para acceder</p>
+        </div>
+
+        <form method="post" asp-action="Registrar">
+            <div class="form-group">
+                <label for="fullName">Nombre Completo</label>
+                <input type="text" id="fullName" name="FullName" required />
+            </div>
+
+            <div class="form-group">
+                <label for="email">Correo Electrónico</label>
+                <input type="email" id="email" name="Email" required />
+            </div>
+
+            <div class="form-group">
+                <label for="regPassword">Contraseña</label>
+                <div class="input-wrapper">
+                    <input type="password" id="regPassword" name="Password" required />
+                    <i class="fa-solid fa-eye toggle-password" data-target="regPassword"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="regConfirmPassword">Confirmar Contraseña</label>
+                <div class="input-wrapper">
+                    <input type="password" id="regConfirmPassword" name="ConfirmPassword" required />
+                    <i class="fa-solid fa-eye toggle-password" data-target="regConfirmPassword"></i>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-register">REGISTRARSE</button>
+        </form>
+
+        <div class="register-footer">
+            <span>¿Ya tienes cuenta?</span>
+            <a href="@Url.Action("Login", "Cuenta")">Iniciar Sesión</a>
+        </div>
+    </div>
+
+    <!-- Vinculación de JS -->
+    <script src="~/js/cuenta.js"></script>
+</body>
+</html>

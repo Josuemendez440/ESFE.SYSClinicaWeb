@@ -1,0 +1,32 @@
+﻿@{
+    ViewData["Title"] = "Verificación de Código - Curavita";
+    Layout = "~/Views/Shared/_LayoutSimple.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css" />
+}
+
+<div class="auth-card">
+    <h2>Ingrese el Código</h2>
+    <p>Hemos enviado un código de 6 dígitos a su correo electrónico.</p>
+
+    <form id="formOtp" method="post" asp-action="ValidarCodigo">
+        <div class="otp-container">
+            <input type="text" maxlength="1" class="otp-input" required />
+            <input type="text" maxlength="1" class="otp-input" required />
+            <input type="text" maxlength="1" class="otp-input" required />
+            <input type="text" maxlength="1" class="otp-input" required />
+            <input type="text" maxlength="1" class="otp-input" required />
+            <input type="text" maxlength="1" class="otp-input" required />
+        </div>
+
+        <input type="hidden" id="codigoCompleto" name="CodigoOtp" />
+
+        <button type="submit" class="btn btn-primary btn-block mt-3">Verificar Código</button>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/verificacion.js"></script>
+}

@@ -1,0 +1,109 @@
+﻿document.addEventListener("DOMContentLoaded", () => {
+    const medicosPorEspecialidad = {
+        "Cardiología": [
+            { id: 1, nombre: "Dr. Carlos Mendoza" },
+            { id: 2, nombre: "Dra. Sofía Alvarado" }
+        ],
+        "Medicina General": [
+            { id: 3, nombre: "Dra. Elena Ramos" },
+            { id: 4, nombre: "Dr. Roberto Fuentes" }
+        ],
+        "Pediatría": [
+            { id: 5, nombre: "Dra. Lucía Méndez" },
+            { id: 6, nombre: "Dr. Mario Castillo" }
+        ]
+    };
+
+    const horariosDisponibles = [
+        "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
+        "02:00 PM", "03:00 PM", "04:00 PM"
+    ];
+
+    const agendarForm = document.getElementById("agendarForm");
+    const especialidadSelect = document.getElementById("especialidad");
+    const medicoSelect = document.getElementById("medico");
+    const horarioSelect = document.getElementById("horario");
+    const inputDui = document.getElementById("dui");
+    const inputTelefono = document.getElementById("telefono");
+
+    const logoutModal = document.getElementById("logoutModal");
+    const btnOpenLogout = document.getElementById("btnOpenLogout");
+    const btnCancelLogout = document.getElementById("btnCancelLogout");
+
+    if (inputDui) {
+        inputDui.addEventListener("input", (e) => {
+            let val = e.target.value.replace(/\D/g, "");
+            if (val.length > 9) val = val.substring(0, 9);
+            if (val.length > 8) {
+                val = val.substring(0, 8) + "-" + val.substring(8);
+            }
+            e.target.value = val;
+        });
+    }
+
+    if (inputTelefono) {
+        inputTelefono.addEventListener("input", (e) => {
+            let val = e.target.value.replace(/\D/g, "");
+            if (val.length > 8) val = val.substring(0, 8);
+            if (val.length > 4) {
+                val = val.substring(0, 4) + "-" + val.substring(4);
+            }
+            e.target.value = val;
+        });
+    }
+
+    if (especialidadSelect && medicoSelect) {
+        especialidadSelect.addEventListener("change", (e) => {
+            const espSelected = e.target.value;
+            medicoSelect.innerHTML = '<option value="" disabled selected>Seleccione Especialista</option>';
+
+            if (medicosPorEspecialidad[espSelected]) {
+                medicosPorEspecialidad[espSelected].forEach((m) => {
+                    const opt = document.createElement("option");
+                    opt.value = m.id;
+                    opt.textContent = m.nombre;
+                    medicoSelect.appendChild(opt);
+                });
+                medicoSelect.disabled = false;
+            } else {
+                medicoSelect.disabled = true;
+            }
+        });
+    }
+
+    if (medicoSelect && horarioSelect) {
+        medicoSelect.addEventListener("change", () => {
+            horarioSelect.innerHTML = '<option value="" disabled selected>Seleccione Hora</option>';
+            horariosDisponibles.forEach((h) => {
+                const opt = document.createElement("option");
+                opt.value = h;
+                opt.textContent = h;
+                horarioSelect.appendChild(opt);
+            });
+        });
+    }
+
+    if (agendarForm) {
+        agendarForm.addEventListener("submit", () => {
+            alert("¡Cita agendada con éxito! Se enviará la confirmación al paciente.");
+        });
+    }
+
+    if (btnOpenLogout && logoutModal) {
+        btnOpenLogout.addEventListener("click", () => {
+            logoutModal.classList.remove("hidden");
+        });
+    }
+
+    if (btnCancelLogout && logoutModal) {
+        btnCancelLogout.addEventListener("click", () => {
+            logoutModal.classList.add("hidden");
+        });
+    }
+
+    if (logoutModal) {
+        logoutModal.addEventListener("click", (e) => {
+            if (e.target === logoutModal) logoutModal.classList.add("hidden");
+        });
+    }
+});

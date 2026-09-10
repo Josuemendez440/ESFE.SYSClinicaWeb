@@ -1,0 +1,158 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Gestión de Expedientes - Curavita";
+    string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/expedientes.css?v=1.0" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div>
+                <div class="brand">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    <span>Curavita</span>
+                </div>
+                <nav class="nav-menu">
+                    <a href="@Url.Action("Inicio", "Account")" class="nav-item @(currentAction.Equals("Inicio", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="@Url.Action("Citas", "Account")" class="nav-item @(currentAction.Equals("Citas", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span>Mis Citas</span>
+                    </a>
+                    <a href="@Url.Action("Agendar", "Account")" class="nav-item @(currentAction.Equals("Agendar", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Agendar Cita</span>
+                    </a>
+                    <a href="@Url.Action("Expedientes", "Account")" class="nav-item active">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <span>Gestión de Expedientes</span>
+                    </a>
+                    <a href="@Url.Action("Consulta", "Account")" class="nav-item @(currentAction.Equals("Consulta", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2h-.2ZM17 21a2 2 0 0 0 4-4v-3h-4v7ZM3 10h4V3H3v7ZM12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5Z" /></svg>
+                        <span>Consulta Médica</span>
+                    </a>
+                    <a href="@Url.Action("Facturacion", "Account")" class="nav-item @(currentAction.Equals("Facturacion", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                        <span>Módulo de Facturación</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="sidebar-footer">
+                <button type="button" id="btnOpenLogout" class="btn-logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="expedientes-container">
+
+                <!-- Sección Crear Expediente -->
+                <section class="card">
+                    <div class="card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <h2>CREAR EXPEDIENTE</h2>
+                    </div>
+
+                    <form id="formCrearExpediente" method="post" asp-action="Crear">
+                        <div class="form-group">
+                            <label for="nombres">NOMBRES</label>
+                            <input type="text" id="nombres" name="Nombres" placeholder="Ej. Juan Carlos" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="apellidos">APELLIDOS</label>
+                            <input type="text" id="apellidos" name="Apellidos" placeholder="Ej. Mendoza López" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="dui">DOCUMENTO DE IDENTIDAD (DUI)</label>
+                            <input type="text" id="dui" name="Dui" placeholder="00000000-0" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telefono">TELÉFONO DE CONTACTO</label>
+                            <input type="tel" id="telefono" name="Telefono" placeholder="0000-0000" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fechaNacimiento">FECHA DE NACIMIENTO</label>
+                            <input type="date" id="fechaNacimiento" name="FechaNacimiento" required />
+                        </div>
+
+                        <button type="submit" class="btn-submit">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            <span>Guardar Nuevo Expediente</span>
+                        </button>
+                    </form>
+                </section>
+
+                <!-- Sección Buscar Paciente -->
+                <section class="card">
+                    <div class="card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <h2>BÚSQUEDA DE PACIENTES EXISTENTES</h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputBusqueda">BUSCAR POR NOMBRE O DOCUMENTO DE IDENTIDAD</label>
+                        <input type="text" id="inputBusqueda" placeholder="Escriba un nombre o DUI..." />
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>CÓDIGO</th>
+                                    <th>NOMBRE DEL PACIENTE</th>
+                                    <th>DOCUMENTO (DUI)</th>
+                                    <th class="text-right">ACCIÓN</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaPacientes">
+                                <!-- Contenido dinámico vía JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Confirmar Cerrar Sesión (Misma estructura de Inicio) -->
+    <div id="logoutModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+            </div>
+            <h3 class="modal-title">¿Cerrar Sesión?</h3>
+            <p class="modal-message">¿Estás seguro de que deseas salir del sistema <strong>Curavita</strong>?</p>
+            <div class="modal-actions">
+                <button id="btnCancelLogout" class="btn-cancel" type="button">Cancelar</button>
+                <a href="@Url.Action("Login", "Account")" class="btn-confirm-logout">Sí, Cerrar Sesión</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/js/expedientes.js" asp-append-version="true"></script>
+</body>
+</html>

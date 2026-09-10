@@ -1,0 +1,66 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Confirmar Pago - Curavita";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <!-- Vinculación de CSS -->
+    <link rel="stylesheet" href="~/css/pago.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+    <div class="payment-card">
+        <div class="payment-header">
+            <h2>Pasarela de Pago Segura</h2>
+            <div class="amount-tag">
+                <span>Total a pagar:</span>
+                <strong>$150.00 USD</strong>
+            </div>
+            <p class="order-id">Orden #84920</p>
+        </div>
+
+        <div class="card-icons">
+            <i class="fa-brands fa-cc-visa"></i>
+            <i class="fa-brands fa-cc-mastercard"></i>
+            <i class="fa-brands fa-cc-amex"></i>
+        </div>
+
+        <form id="paymentForm" method="post" asp-action="ProcesarPago">
+            <div class="form-group">
+                <label for="cardHolder">Nombre del Titular</label>
+                <input type="text" id="cardHolder" name="CardHolder" required placeholder="Como aparece en la tarjeta" />
+            </div>
+            <div class="form-group">
+                <label for="cardNumber">Número de Tarjeta</label>
+                <input type="text" id="cardNumber" name="CardNumber" maxlength="19" required placeholder="0000 0000 0000 0000" />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="expiry">Expiración (MM/AA)</label>
+                    <input type="text" id="expiry" name="Expiry" maxlength="5" placeholder="MM/AA" required />
+                </div>
+                <div class="form-group">
+                    <label for="cvc">CVC/CVV</label>
+                    <input type="password" id="cvc" name="Cvc" maxlength="4" placeholder="123" required />
+                </div>
+            </div>
+
+            <button type="submit" class="btn-pay">
+                <i class="fa-solid fa-lock"></i> Pagar $150.00 USD
+            </button>
+        </form>
+
+        <div class="security-footer">
+            <i class="fa-solid fa-shield-halved"></i> Transacción encriptada con SSL de 256-bit
+        </div>
+    </div>
+
+    <!-- Vinculación de JS -->
+    <script src="~/js/pago.js"></script>
+</body>
+</html>

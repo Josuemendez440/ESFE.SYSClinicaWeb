@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "Recuperar Contraseña - Curavita";
+    Layout = "~/Views/Shared/_LayoutSimple.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css" />
+}
+
+<div class="auth-card">
+    <h2>Recuperar Contraseña</h2>
+    <p>Ingrese su correo electrónico para recibir un código de verificación.</p>
+
+    <form method="post" asp-action="EnviarCodigo">
+        <div class="form-group">
+            <label for="correo">Correo Electrónico</label>
+            <input type="email" id="correo" name="Correo" class="form-control" placeholder="usuario@curavita.com" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Enviar Código</button>
+    </form>
+</div>

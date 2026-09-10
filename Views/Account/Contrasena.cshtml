@@ -1,0 +1,52 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "Restablecer Contraseña - Curavita";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <!-- Vinculación de CSS -->
+    <link rel="stylesheet" href="~/css/contrasena.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-header">
+            <a href="@Url.Action("Verificacion", "Cuenta")" class="back-link"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+            <h2>Curavita</h2>
+            <p>Ingrese su nueva contraseña</p>
+        </div>
+
+        <form method="post" asp-action="CambiarContrasena">
+            <div class="form-group">
+                <label for="newPassword">Nueva Contraseña</label>
+                <div class="input-wrapper">
+                    <input type="password" id="newPassword" name="NewPassword" required />
+                    <i class="fa-solid fa-eye toggle-password" data-target="newPassword"></i>
+                </div>
+            </div>
+
+            <div class="strength-meter">
+                <div id="strengthBar" class="bar"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirmar Contraseña</label>
+                <div class="input-wrapper">
+                    <input type="password" id="confirmPassword" name="ConfirmPassword" required />
+                    <i class="fa-solid fa-eye toggle-password" data-target="confirmPassword"></i>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">Cambiar contraseña</button>
+        </form>
+    </div>
+
+    <!-- Vinculación de JS -->
+    <script src="~/js/contrasena.js"></script>
+</body>
+</html>
