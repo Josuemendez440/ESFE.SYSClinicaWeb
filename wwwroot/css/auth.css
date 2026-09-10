@@ -1,30 +1,270 @@
-﻿.auth-card {
-    max-width: 400px;
-    margin: 80px auto;
-    padding: 32px;
-    background: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
+﻿:root {
+    --primary-green: #1c909b;
+    --primary-dark: #277c95;
+    --bg-light: #eef5f7;
+    --card-celeste: #f2f9fa;
+    --white: #FFFFFF;
+    --border-color: #b2cfd6;
+    --text-muted: #5a7b85;
+    --danger-red: #d94e4e;
 }
 
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--bg-light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+    padding: 24px 16px;
+}
+
+.view-section {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-card {
+    width: 380px;
+    background: var(--card-celeste);
+    padding: 28px 24px 22px 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(39, 124, 149, 0.12);
+    border: 1px solid rgba(178, 207, 214, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.logo-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.login-logo {
+    max-width: 95px;
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+h2, .card-title {
+    color: var(--primary-dark);
+    font-size: 15px;
+    margin-bottom: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: center;
+    width: 100%;
+}
+
+.info-msg {
+    color: var(--primary-dark);
+    font-size: 11.5px;
+    margin-bottom: 14px;
+    text-align: center;
+    width: 100%;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.form-group {
+    width: 100%;
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--primary-dark);
+        font-weight: 600;
+        font-size: 11.5px;
+    }
+
+.form-control {
+    width: 100%;
+    height: 38px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #2c3e50;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+    .form-control:focus {
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(28, 144, 155, 0.15);
+    }
+
+/* Estilos de botones (soporta <button> y <a>) */
+.btn-login, .btn-verify {
+    width: 100%;
+    height: 40px;
+    background: var(--primary-dark);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(39, 124, 149, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    text-align: center;
+    line-height: 1;
+}
+
+    .btn-login:hover, .btn-verify:hover {
+        background: var(--primary-green);
+        box-shadow: 0 4px 12px rgba(28, 144, 155, 0.3);
+    }
+
+/* Opciones de la parte inferior */
+.options-bar {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    margin-top: 16px;
+}
+
+    .options-bar a {
+        color: var(--primary-dark);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+        .options-bar a:hover {
+            color: var(--primary-green);
+            text-decoration: underline;
+        }
+
+.resend-text {
+    color: var(--text-muted);
+}
+
+/* Estilos para los campos del código OTP (Verificación) */
 .otp-container {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
-    margin: 20px 0;
+    gap: 6px;
+    margin-bottom: 18px;
+    width: 100%;
 }
 
 .otp-input {
-    width: 45px;
-    height: 50px;
-    font-size: 1.5rem;
+    width: 44px;
+    height: 48px;
     text-align: center;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--white);
+    outline: none;
+    transition: all 0.2s ease;
 }
 
     .otp-input:focus {
-        border-color: #0056b3;
-        outline: none;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 3px rgba(28, 144, 155, 0.18);
     }
+
+/* Estilos para la pantalla de Cambio de Contraseña */
+.card-title-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--primary-dark);
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.back-arrow-inline {
+    color: var(--primary-dark);
+    text-decoration: none;
+    font-size: 18px;
+}
+
+.info-msg-left {
+    color: var(--primary-dark);
+    font-size: 11.5px;
+    text-align: left;
+    margin-bottom: 18px;
+    line-height: 1.45;
+    width: 100%;
+}
+
+.info-link {
+    color: #007399;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+    .info-link:hover {
+        text-decoration: underline;
+    }
+
+.strength-info {
+    font-size: 11px;
+    color: var(--primary-dark);
+    text-align: left;
+    margin-bottom: 16px;
+    line-height: 1.4;
+}
+
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+    .input-wrapper .form-control {
+        padding-right: 38px;
+    }
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+}

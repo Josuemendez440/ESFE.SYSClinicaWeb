@@ -48,7 +48,8 @@
             <label>
                 <input type="checkbox" id="chkRecordar"> Recuérdame
             </label>
-            <a href="#" id="lnkOlvidaste">¿Olvidaste tu contraseña?</a>
+            <!-- Redirección con Razor Helper -->
+            <a href="@Url.Action("Recuperar", "Account")" id="lnkOlvidaste">¿Olvidaste tu contraseña?</a>
         </div>
 
         <button type="button" id="btnLogin" class="btn-login">INICIAR SESIÓN</button>

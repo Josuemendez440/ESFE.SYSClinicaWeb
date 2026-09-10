@@ -32,8 +32,8 @@
 
     // Petición de Inicio de Sesión
     function ejecutarInicioSesion() {
-        const correoVal = correoInput.value.trim();
-        const contrasenaVal = passwordInput.value.trim();
+        const correoVal = correoInput ? correoInput.value.trim() : '';
+        const contrasenaVal = passwordInput ? passwordInput.value.trim() : '';
 
         if (!correoVal || !contrasenaVal) {
             if (errorMsg) {
@@ -65,7 +65,6 @@
                 body: formData
             })
                 .then(response => {
-                    // Si C# responde con RedirectToAction, la URL cambia automáticamente
                     if (response.redirected) {
                         window.location.href = response.url;
                     } else if (response.ok) {
@@ -92,17 +91,27 @@
     if (passwordInput) passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') ejecutarInicioSesion(); });
     if (correoInput) correoInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') ejecutarInicioSesion(); });
 
-    // Enlaces alternativos
+    // Enlace: Ir a Crear Cuenta
     if (btnIrRegistro) {
         btnIrRegistro.addEventListener('click', () => {
-            window.location.href = "/Account/Registro";
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage(JSON.stringify({ accion: "ir_registro" }));
+            } else {
+                window.location.href = "/Account/Registro";
+            }
         });
     }
 
+    // Enlace: Olvidaste tu contraseña -> Redirección a Recuperar
     if (lnkOlvidaste) {
         lnkOlvidaste.addEventListener('click', (e) => {
             e.preventDefault();
-            window.location.href = "/Account/Recuperar";
+
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage(JSON.stringify({ accion: "recuperar_contrasena" }));
+            } else {
+                window.location.href = "/Account/Recuperar";
+            }
         });
     }
 });

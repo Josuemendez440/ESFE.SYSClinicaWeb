@@ -1,32 +1,50 @@
 ﻿@{
-    ViewData["Title"] = "Verificación de Código - Curavita";
-    Layout = "~/Views/Shared/_LayoutSimple.cshtml";
+    Layout = null;
 }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Curavita - Código de Verificación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+</head>
+<body>
 
-@section Styles {
-    <link rel="stylesheet" href="~/css/auth.css" />
-}
+    <div class="view-section">
+        <div class="login-card">
+            <div class="logo-container">
+                <img src="~/images/logo.png" alt="Curavita" class="login-logo">
+            </div>
 
-<div class="auth-card">
-    <h2>Ingrese el Código</h2>
-    <p>Hemos enviado un código de 6 dígitos a su correo electrónico.</p>
+            <h2 class="card-title">CÓDIGO DE VERIFICACIÓN</h2>
 
-    <form id="formOtp" method="post" asp-action="ValidarCodigo">
-        <div class="otp-container">
-            <input type="text" maxlength="1" class="otp-input" required />
-            <input type="text" maxlength="1" class="otp-input" required />
-            <input type="text" maxlength="1" class="otp-input" required />
-            <input type="text" maxlength="1" class="otp-input" required />
-            <input type="text" maxlength="1" class="otp-input" required />
-            <input type="text" maxlength="1" class="otp-input" required />
+            <p class="info-msg">Hemos enviado un código de 6 dígitos a tu correo electrónico.</p>
+
+            <form id="formOtp" style="width: 100%;">
+                <div class="otp-container">
+                    <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" autofocus required />
+                    <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required />
+                    <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required />
+                    <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required />
+                    <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required />
+                    <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required />
+                </div>
+
+                <input type="hidden" id="codigoCompleto" name="CodigoOtp" />
+
+                <!-- Redirección directa hacia la vista Contrasena -->
+                <a href="@Url.Action("Contrasena", "Account")" id="btnValidar" class="btn-verify">VERIFICAR CÓDIGO</a>
+            </form>
+
+            <div class="options-bar">
+                <span class="resend-text">¿No recibiste el código? <a href="@Url.Action("Recuperar", "Account")" id="lnkReenviar">Reenviar</a></span>
+                <a href="@Url.Action("Recuperar", "Account")">&larr; Volver</a>
+            </div>
         </div>
+    </div>
 
-        <input type="hidden" id="codigoCompleto" name="CodigoOtp" />
-
-        <button type="submit" class="btn btn-primary btn-block mt-3">Verificar Código</button>
-    </form>
-</div>
-
-@section Scripts {
     <script src="~/js/verificacion.js"></script>
-}
+</body>
+</html>

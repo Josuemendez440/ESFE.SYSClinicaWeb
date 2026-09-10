@@ -1,6 +1,6 @@
 ﻿@{
     Layout = null;
-    ViewData["Title"] = "Restablecer Contraseña - Curavita";
+    ViewData["Title"] = "Curavita - Cambiar Contraseña";
 }
 
 <!DOCTYPE html>
@@ -9,44 +9,55 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
-    <!-- Vinculación de CSS -->
-    <link rel="stylesheet" href="~/css/contrasena.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/contrasena.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
 <body>
     <div class="auth-card">
-        <div class="auth-header">
-            <a href="@Url.Action("Verificacion", "Cuenta")" class="back-link"><i class="fa-solid fa-arrow-left"></i> Volver</a>
-            <h2>Curavita</h2>
-            <p>Ingrese su nueva contraseña</p>
+        <div class="logo-container">
+            <img src="~/images/logo.png" alt="Curavita" class="login-logo">
         </div>
 
-        <form method="post" asp-action="CambiarContrasena">
-            <div class="form-group">
-                <label for="newPassword">Nueva Contraseña</label>
-                <div class="input-wrapper">
-                    <input type="password" id="newPassword" name="NewPassword" required />
-                    <i class="fa-solid fa-eye toggle-password" data-target="newPassword"></i>
-                </div>
+        <div class="title-row">
+            <a href="@Url.Action("Verificacion", "Account")" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+            <h2>Contraseña</h2>
+        </div>
+
+        <p class="info-msg-left">
+            Es posible que se cierre la sesión de tu cuenta en algunos dispositivos. Consulta más información sobre <a href="#" class="info-link">dónde seguirás con la sesión iniciada <i class="fa-regular fa-circle-question"></i></a>.
+        </p>
+
+        <form method="post" asp-action="CambiarContrasena" asp-controller="Account">
+            <!-- Campo 1: Nueva Contraseña -->
+            <div class="floating-group">
+                <input type="password" id="newPassword" name="NewPassword" placeholder=" " required />
+                <label for="newPassword">Contraseña nueva</label>
+                <i class="fa-regular fa-eye-slash toggle-password" data-target="newPassword"></i>
             </div>
 
-            <div class="strength-meter">
-                <div id="strengthBar" class="bar"></div>
+            <!-- Información de Seguridad -->
+            <div class="strength-info">
+                <span class="strength-label">Seguridad de la contraseña:</span> <span id="strengthText">—</span>
+                <p class="strength-hint">
+                    Utiliza al menos 8 caracteres. No uses una contraseña de otro sitio ni un nombre demasiado obvio, como el de tu mascota. <a href="#" class="info-link">¿Por qué? <i class="fa-regular fa-circle-question"></i></a>
+                </p>
             </div>
 
-            <div class="form-group">
-                <label for="confirmPassword">Confirmar Contraseña</label>
-                <div class="input-wrapper">
-                    <input type="password" id="confirmPassword" name="ConfirmPassword" required />
-                    <i class="fa-solid fa-eye toggle-password" data-target="confirmPassword"></i>
-                </div>
+            <!-- Campo 2: Confirmar Contraseña -->
+            <div class="floating-group">
+                <input type="password" id="confirmPassword" name="ConfirmPassword" placeholder=" " required />
+                <label for="confirmPassword">Confirma la nueva contraseña</label>
+                <i class="fa-regular fa-eye-slash toggle-password" data-target="confirmPassword"></i>
             </div>
 
-            <button type="submit" class="btn-submit">Cambiar contraseña</button>
+            <!-- Botón alineado a la derecha -->
+            <div class="btn-container">
+                <button type="submit" class="btn-submit">Cambiar contraseña</button>
+            </div>
         </form>
     </div>
 
-    <!-- Vinculación de JS -->
     <script src="~/js/contrasena.js"></script>
 </body>
 </html>

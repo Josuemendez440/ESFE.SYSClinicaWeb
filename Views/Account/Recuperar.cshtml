@@ -1,22 +1,40 @@
 ﻿@{
-    ViewData["Title"] = "Recuperar Contraseña - Curavita";
-    Layout = "~/Views/Shared/_LayoutSimple.cshtml";
+    Layout = null;
 }
 
-@section Styles {
-    <link rel="stylesheet" href="~/css/auth.css" />
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Curavita - Recuperar Contraseña</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+</head>
+<body>
 
-<div class="auth-card">
-    <h2>Recuperar Contraseña</h2>
-    <p>Ingrese su correo electrónico para recibir un código de verificación.</p>
-
-    <form method="post" asp-action="EnviarCodigo">
-        <div class="form-group">
-            <label for="correo">Correo Electrónico</label>
-            <input type="email" id="correo" name="Correo" class="form-control" placeholder="usuario@curavita.com" required />
+    <div class="login-card">
+        <div class="logo-container">
+            <img src="~/images/logo.png" alt="Curavita" class="login-logo">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block">Enviar Código</button>
-    </form>
-</div>
+        <h2>RECUPERAR CONTRASEÑA</h2>
+
+        <div class="info-msg">Ingresa tu correo para enviarte un código de verificación.</div>
+
+        <form method="post" asp-action="EnviarCodigo" asp-controller="Account" style="width: 100%;">
+            <div class="form-group">
+                <label for="txtCorreo">Correo Electrónico</label>
+                <input type="email" id="txtCorreo" name="Correo" class="form-control" placeholder="usuario@curavita.digital" autocomplete="off" required>
+            </div>
+
+            <button type="submit" class="btn-login">ENVIAR CÓDIGO</button>
+        </form>
+
+        <div class="options-bar">
+            <a href="@Url.Action("Login", "Account")">&larr; Volver</a>
+        </div>
+    </div>
+
+</body>
+</html>
