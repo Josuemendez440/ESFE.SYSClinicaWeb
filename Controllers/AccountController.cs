@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ESFE.ClinicaWEB.Controllers
 {
@@ -15,20 +15,86 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpPost]
         public IActionResult Login([FromForm] string correo, [FromForm] string contrasena)
         {
-            // Validación temporal de prueba
-            if (!string.IsNullOrEmpty(correo) && !string.IsNullOrEmpty(contrasena))
+            if (string.IsNullOrEmpty(correo) || string.IsNullOrEmpty(contrasena))
             {
-                return RedirectToAction("Inicio", "Account");
+                return BadRequest(new { exito = false, mensaje = "Credenciales inválidas" });
             }
 
-            return BadRequest(new { mensaje = "Credenciales inválidas" });
+            // Normalización para prevenir errores de escritura
+            string correoNormalizado = correo.Trim().ToLower();
+
+            // 1. Administrador Principal
+            if (correoNormalizado == "admin@curavita.com" && contrasena == "/.4HzHe.GncV/H7MYS8S")
+            {
+                return Ok(new
+                {
+                    exito = true,
+                    mensaje = "¡Bienvenido/a Administrador Principal!",
+                    usuario = "Administrador Principal",
+                    rol = "Administrador",
+                    redirectUrl = "/Account/Inicio",
+                    modulos = new[] { "Inicio", "Citas", "Agendar", "Gestion Expedientes", "Consulta", "Facturacion" }
+                });
+            }
+            // 2. Médico (JM Alexander)
+            else if (correoNormalizado == "jmalexander2007@gmail.com" && contrasena == "DrAlexander2026!")
+            {
+                return Ok(new
+                {
+                    exito = true,
+                    mensaje = "¡Bienvenido/a JM Alexander!",
+                    usuario = "JM Alexander",
+                    rol = "Médico",
+                    redirectUrl = "/Account/Inicio",
+                    modulos = new[] { "Inicio", "Consulta" }
+                });
+            }
+            // 3. ENFERMERO (Miriame Guzmán - Correo corregido con el punto)
+            else if (correoNormalizado == "miriameguzman.06@gmail.com" && contrasena == "Miriame2026!Rec")
+            {
+                return Ok(new
+                {
+                    exito = true,
+                    mensaje = "¡Bienvenida Miriame Guzmán!",
+                    usuario = "Miriame Guzmán",
+                    rol = "Enfermero",
+                    redirectUrl = "/Account/Inicio",
+                    modulos = new[] { "Inicio", "Citas", "Agendar", "Gestion Expedientes" }
+                });
+            }
+            // 4. RECEPCIONISTA (Recepción Curavita)
+            else if (correoNormalizado == "recepcion@curavita.com" && contrasena == "Recepcion2026!")
+            {
+                return Ok(new
+                {
+                    exito = true,
+                    mensaje = "¡Bienvenido/a Recepción!",
+                    usuario = "Recepción Curavita",
+                    rol = "Recepcionista",
+                    redirectUrl = "/Account/Inicio",
+                    modulos = new[] { "Inicio", "Facturacion" }
+                });
+            }
+            // Fallback para Pacientes / Clientes genéricos
+            else
+            {
+                return Ok(new
+                {
+                    exito = true,
+                    mensaje = "¡Bienvenido/a!",
+                    usuario = "Paciente",
+                    rol = "Cliente",
+                    redirectUrl = "/Account/Inicio",
+                    modulos = new[] { "Inicio", "Agendar", "Citas" }
+                });
+            }
         }
 
         // GET: /Account/Recuperar
         [HttpGet]
         public IActionResult Recuperar()
         {
-            return View(); // Carga Views/Account/Recuperar.cshtml
+            return View();
         }
 
         // POST: /Account/EnviarCodigo
@@ -40,9 +106,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 return BadRequest(new { mensaje = "El correo es obligatorio." });
             }
 
-            // TODO: Lógica para enviar el código de verificación al correo
-
-            // Redirige hacia la vista de Verificación tras enviar el código
             return RedirectToAction("Verificacion", "Account");
         }
 
@@ -50,7 +113,7 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet]
         public IActionResult Verificacion()
         {
-            return View("Verificacion"); // Carga Views/Account/Verificacion.cshtml
+            return View("Verificacion");
         }
 
         // POST: /Account/ValidarCodigo
@@ -62,9 +125,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 return BadRequest(new { mensaje = "El código de verificación es obligatorio." });
             }
 
-            // TODO: Lógica para validar el código OTP ingresado
-
-            // Redirige a la pantalla para ingresar la nueva contraseña
             return RedirectToAction("Contrasena", "Account");
         }
 
@@ -72,7 +132,7 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet]
         public IActionResult Contrasena()
         {
-            return View(); // Carga Views/Account/Contrasena.cshtml
+            return View();
         }
 
         // POST: /Account/CambiarContrasena
@@ -89,9 +149,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 return BadRequest(new { mensaje = "Las contraseñas no coinciden." });
             }
 
-            // TODO: Lógica para actualizar la contraseña en la base de datos
-
-            // Redirige al Login una vez completado el cambio
             return RedirectToAction("Login", "Account");
         }
 
@@ -99,42 +156,42 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet]
         public IActionResult Inicio()
         {
-            return View(); // Carga Views/Account/Inicio.cshtml
+            return View();
         }
 
         // GET: /Account/Citas
         [HttpGet]
         public IActionResult Citas()
         {
-            return View(); // Carga Views/Account/Citas.cshtml
+            return View();
         }
 
         // GET: /Account/Agendar
         [HttpGet]
         public IActionResult Agendar()
         {
-            return View(); // Carga Views/Account/Agendar.cshtml
+            return View();
         }
 
         // GET: /Account/Expedientes
         [HttpGet]
         public IActionResult Expedientes()
         {
-            return View("expedientes"); // Carga Views/Account/expedientes.cshtml
+            return View("expedientes");
         }
 
         // GET: /Account/Consulta
         [HttpGet]
         public IActionResult Consulta()
         {
-            return View(); // Carga Views/Account/Consulta.cshtml
+            return View();
         }
 
         // GET: /Account/Facturacion
         [HttpGet]
         public IActionResult Facturacion()
         {
-            return View("facturacion"); // Carga Views/Account/facturacion.cshtml
+            return View("facturacion");
         }
     }
 }

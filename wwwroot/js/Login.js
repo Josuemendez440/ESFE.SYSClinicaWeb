@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const correoInput = document.getElementById('txtCorreo');
     const passwordInput = document.getElementById('txtContrasena');
     const chkRecordar = document.getElementById('chkRecordar');
@@ -18,13 +18,13 @@
 
             if (esPassword) {
                 passwordInput.type = 'text';
-                eyeOffIcon.style.display = 'none';
-                eyeIcon.style.display = 'block';
+                if (eyeOffIcon) eyeOffIcon.style.display = 'none';
+                if (eyeIcon) eyeIcon.style.display = 'block';
                 togglePassword.setAttribute('title', 'Ocultar contraseña');
             } else {
                 passwordInput.type = 'password';
-                eyeIcon.style.display = 'none';
-                eyeOffIcon.style.display = 'block';
+                if (eyeIcon) eyeIcon.style.display = 'none';
+                if (eyeOffIcon) eyeOffIcon.style.display = 'block';
                 togglePassword.setAttribute('title', 'Mostrar contraseña');
             }
         });
@@ -45,45 +45,54 @@
 
         if (errorMsg) errorMsg.style.display = 'none';
 
-        // Si estás dentro de una app con WebView2 (Escritorio)
-        if (window.chrome && window.chrome.webview) {
-            const payload = {
-                accion: "iniciar_sesion",
-                correo: correoVal,
-                contrasena: contrasenaVal,
-                recordar: chkRecordar ? chkRecordar.checked : false
-            };
-            window.chrome.webview.postMessage(JSON.stringify(payload));
-        } else {
-            // Petición hacia ASP.NET Core MVC (Web)
-            const formData = new FormData();
-            formData.append("correo", correoVal);
-            formData.append("contrasena", contrasenaVal);
+        // Petición hacia ASP.NET Core MVC (Web)
+        const formData = new FormData();
+        formData.append("correo", correoVal);
+        formData.append("contrasena", contrasenaVal);
 
-            fetch("/Account/Login", {
-                method: "POST",
-                body: formData
+        fetch("/Account/Login", {
+            method: "POST",
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Credenciales incorrectas");
+                }
+                return response.json();
             })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = response.url;
-                    } else if (response.ok) {
-                        window.location.href = "/Account/Inicio";
-                    } else {
-                        if (errorMsg) {
-                            errorMsg.innerText = "Correo o contraseña incorrectos.";
-                            errorMsg.style.display = 'block';
-                        }
+            .then(data => {
+                if (data.exito) {
+                    // Guardar datos en sessionStorage de manera segura
+                    sessionStorage.setItem('usuario', data.usuario);
+                    sessionStorage.setItem('rol', data.rol);
+                    sessionStorage.setItem('modulos', JSON.stringify(data.modulos || []));
+                    sessionStorage.setItem('redirectUrl', data.redirectUrl);
+
+                    // Si estás en WebView2 (Escritorio), también notifica a la App
+                    if (window.chrome && window.chrome.webview) {
+                        window.chrome.webview.postMessage(JSON.stringify({
+                            accion: "sesion_iniciada",
+                            usuario: data.usuario,
+                            rol: data.rol
+                        }));
                     }
-                })
-                .catch(err => {
-                    console.error("Error de comunicación:", err);
+
+                    // Redirigir
+                    window.location.href = data.redirectUrl || '/Account/Inicio';
+                } else {
                     if (errorMsg) {
-                        errorMsg.innerText = "Ocurrió un error al conectar con el servidor.";
+                        errorMsg.innerText = data.mensaje || "Error al iniciar sesión.";
                         errorMsg.style.display = 'block';
                     }
-                });
-        }
+                }
+            })
+            .catch(err => {
+                console.error("Error de comunicación:", err);
+                if (errorMsg) {
+                    errorMsg.innerText = "Correo o contraseña incorrectos o error de servidor.";
+                    errorMsg.style.display = 'block';
+                }
+            });
     }
 
     // Eventos del formulario
@@ -94,24 +103,15 @@
     // Enlace: Ir a Crear Cuenta
     if (btnIrRegistro) {
         btnIrRegistro.addEventListener('click', () => {
-            if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage(JSON.stringify({ accion: "ir_registro" }));
-            } else {
-                window.location.href = "/Account/Registro";
-            }
+            window.location.href = "/Account/Registro";
         });
     }
 
-    // Enlace: Olvidaste tu contraseña -> Redirección a Recuperar
+    // Enlace: Olvidaste tu contraseña
     if (lnkOlvidaste) {
         lnkOlvidaste.addEventListener('click', (e) => {
             e.preventDefault();
-
-            if (window.chrome && window.chrome.webview) {
-                window.chrome.webview.postMessage(JSON.stringify({ accion: "recuperar_contrasena" }));
-            } else {
-                window.location.href = "/Account/Recuperar";
-            }
+            window.location.href = "/Account/Recuperar";
         });
     }
 });
