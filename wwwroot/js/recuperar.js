@@ -1,6 +1,6 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     const btnEnviar = document.getElementById('btnEnviarCodigo') || document.querySelector('button[type="submit"]');
-    const inputEmail = document.getElementById('userEmail') || document.querySelector('input[type="email"]');
+    const inputEmail = document.getElementById('txtCorreo') || document.getElementById('userEmail') || document.querySelector('input[type="email"]');
 
     if (btnEnviar && inputEmail) {
         btnEnviar.addEventListener('click', async (e) => {
@@ -25,7 +25,6 @@
                     sessionStorage.setItem('resetEmail', email);
                     window.location.href = `/Account/Verificacion?email=${encodeURIComponent(email)}`;
                 } else {
-                    // Muestra el mensaje si el correo NO existe en la base de datos
                     alert(data.mensaje);
                 }
             } catch (error) {

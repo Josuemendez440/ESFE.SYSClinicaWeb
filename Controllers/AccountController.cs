@@ -16,7 +16,6 @@ namespace ESFE.ClinicaWEB.Controllers
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
 
-        // Arreglos estáticos de módulos según rol
         private static readonly string[] ModulosAdmin = ["inicio", "citas", "agendar", "expedientes", "consulta", "facturacion"];
         private static readonly string[] ModulosMedico = ["inicio", "consulta"];
         private static readonly string[] ModulosEnfermero = ["inicio", "expedientes", "agendar", "citas"];
@@ -29,11 +28,9 @@ namespace ESFE.ClinicaWEB.Controllers
             _emailService = emailService;
         }
 
-        // GET: /Account/Login
         [HttpGet]
         public IActionResult Login() => View();
 
-        // POST: /Account/Login
         [HttpPost]
         public async Task<IActionResult> Login([FromForm] string correo, [FromForm] string contrasena)
         {
@@ -44,7 +41,6 @@ namespace ESFE.ClinicaWEB.Controllers
 
             string correoNormalizado = correo.Trim().ToLower();
 
-            // 1. Cuenta maestra de administración (Mantenimiento)
             if (correoNormalizado == "admin@curavita.com" && contrasena == "/.4HzHe.GncV/H7MYS8S")
             {
                 return Ok(new
@@ -58,7 +54,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 });
             }
 
-            // 2. Validación DINÁMICA en Base de Datos SQL
             try
             {
                 string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
@@ -90,8 +85,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     string especialidad = reader["especialidad"]?.ToString() ?? "";
 
                     string nombreCompleto = $"{nombres} {apellidos}".Trim();
-
-                    // Para la interfaz se puede mostrar la especialidad, pero la autorización de MÓDULOS siempre usa el rol real
                     string rolParaMostrar = (!string.IsNullOrEmpty(especialidad) && especialidad != "N/A") ? especialidad : rolBD;
 
                     return Ok(new
@@ -101,7 +94,7 @@ namespace ESFE.ClinicaWEB.Controllers
                         usuario = nombreCompleto,
                         rol = rolParaMostrar,
                         redirectUrl = "/Account/Inicio",
-                        modulos = ObtenerModulosSegunRol(rolBD) // 👈 Evalúa siempre según rolBD (Médico, Recepcionista, Administrador, etc.)
+                        modulos = ObtenerModulosSegunRol(rolBD)
                     });
                 }
             }
@@ -123,31 +116,55 @@ namespace ESFE.ClinicaWEB.Controllers
             string correoNormalizado = model.Correo.Trim().ToLower();
             bool existeUsuario = false;
 
-            // Búsqueda 100% Dinámica en la Base de Datos
+            // 1. Verificar existencia en la Base de Datos
             try
             {
                 string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
                 using var conn = new SqlConnection(connectionString);
                 await conn.OpenAsync();
 
-                string query = "SELECT COUNT(1) FROM Usuarios WHERE LOWER(correo) = @correo";
+                string query = "SELECT COUNT(1) FROM dbo.Usuarios WHERE LOWER(correo) = @correo";
                 using var cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@correo", correoNormalizado);
 
                 if (Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0)
                     existeUsuario = true;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                return Json(new { exito = false, mensaje = "Error al consultar la base de datos: " + ex.Message });
+            }
 
             if (!existeUsuario && correoNormalizado != "admin@curavita.com")
                 return Json(new { exito = false, mensaje = "El correo electrónico no se encuentra registrado." });
 
+            // 2. Generar código OTP
             string codigoOtp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
 
+            // 3. Guardar código en BD con 15 minutos de vigencia
             try
             {
-                string cuerpoHtml = $"<p>Tu código de recuperación es: <b>{codigoOtp}</b></p>";
-                await _emailService.SendEmailAsync(correoNormalizado, "Código de Verificación - Curavita", cuerpoHtml);
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                string updateOtp = @"
+                    UPDATE dbo.Usuarios 
+                    SET codigo_recuperacion = @otp, 
+                        fecha_expiracion_codigo = DATEADD(MINUTE, 15, GETDATE()) 
+                    WHERE LOWER(correo) = @correo";
+
+                using var cmd = new SqlCommand(updateOtp, conn);
+                cmd.Parameters.AddWithValue("@otp", codigoOtp);
+                cmd.Parameters.AddWithValue("@correo", correoNormalizado);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch { }
+
+            // 4. Enviar e-mail con plantilla
+            try
+            {
+                await _emailService.SendOtpEmailAsync(correoNormalizado, codigoOtp);
                 return Json(new { exito = true, mensaje = "Código enviado a tu correo electrónico." });
             }
             catch (Exception ex)
@@ -160,11 +177,41 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpPost]
         public async Task<IActionResult> ValidarCodigoOtp([FromBody] ValidarOtpDto model)
         {
-            await Task.CompletedTask;
             if (string.IsNullOrWhiteSpace(model.Codigo) || model.Codigo.Length != 6)
                 return Json(new { exito = false, mensaje = "El código debe tener 6 dígitos." });
 
-            return Json(new { exito = true, tokenValidacion = Guid.NewGuid().ToString() });
+            string correoNormalizado = model.Correo?.Trim().ToLower() ?? "";
+
+            try
+            {
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                string query = @"
+                    SELECT COUNT(1) 
+                    FROM dbo.Usuarios 
+                    WHERE LOWER(correo) = @correo 
+                      AND codigo_recuperacion = @codigo 
+                      AND fecha_expiracion_codigo >= GETDATE()";
+
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@correo", correoNormalizado);
+                cmd.Parameters.AddWithValue("@codigo", model.Codigo);
+
+                int valido = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+
+                if (valido > 0)
+                {
+                    return Json(new { exito = true, tokenValidacion = Guid.NewGuid().ToString() });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { exito = false, mensaje = "Error al validar el código: " + ex.Message });
+            }
+
+            return Json(new { exito = false, mensaje = "El código ingresado es incorrecto o ha expirado." });
         }
 
         // POST: /Account/RestablecerPassword
@@ -184,7 +231,7 @@ namespace ESFE.ClinicaWEB.Controllers
                 using var conn = new SqlConnection(connectionString);
                 await conn.OpenAsync();
 
-                string update = "UPDATE Usuarios SET password_hash = @nuevaPassword WHERE LOWER(correo) = @correo";
+                string update = "UPDATE dbo.Usuarios SET password_hash = @nuevaPassword, codigo_recuperacion = NULL WHERE LOWER(correo) = @correo";
                 using var cmd = new SqlCommand(update, conn);
                 cmd.Parameters.AddWithValue("@nuevaPassword", HashSHA256(model.NuevaContrasena));
                 cmd.Parameters.AddWithValue("@correo", correoDestino);
@@ -195,7 +242,6 @@ namespace ESFE.ClinicaWEB.Controllers
             return Json(new { exito = true, mensaje = "Contraseña restablecida correctamente." });
         }
 
-        // Métodos de vistas
         [HttpGet] public IActionResult Recuperar() => View();
         [HttpGet] public IActionResult Verificacion() => View();
         [HttpGet] public IActionResult Contrasena() => View();
@@ -206,14 +252,12 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet] public IActionResult Consulta() => View();
         [HttpGet] public IActionResult Facturacion() => View("facturacion");
 
-        // Métodos auxiliares estáticos
         private static string[] ObtenerModulosSegunRol(string rol)
         {
             if (string.IsNullOrWhiteSpace(rol)) return ModulosPaciente;
 
-            // Normalización: Elimina tildes/acentos y convierte a minúsculas
             string normalized = rol.Normalize(NormalizationForm.FormD);
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
             foreach (char c in normalized)
             {
                 if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
@@ -226,7 +270,7 @@ namespace ESFE.ClinicaWEB.Controllers
             if (r.Contains("admin"))
                 return ModulosAdmin;
             if (r.Contains("medic") || r.Contains("doct") || r.Contains("medicina"))
-                return ModulosMedico; // 👈 Coincidirá independientemente de si viene como "Médico" o "Medico"
+                return ModulosMedico;
             if (r.Contains("enferm"))
                 return ModulosEnfermero;
             if (r.Contains("recep"))

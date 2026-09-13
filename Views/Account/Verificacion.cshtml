@@ -5,7 +5,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Curavita - Código de Verificación</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
@@ -22,7 +22,10 @@
 
             <p class="info-msg">Hemos enviado un código de 6 dígitos a tu correo electrónico.</p>
 
-            <form id="formOtp" style="width: 100%;">
+            <!-- Contenedor dinámico de error -->
+            <div id="alertBox" class="alert-banner" role="alert"></div>
+
+            <form id="formOtp" onsubmit="return false;" style="width: 100%;">
                 <div class="otp-container">
                     <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" autofocus required />
                     <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" required />
@@ -34,8 +37,7 @@
 
                 <input type="hidden" id="codigoCompleto" name="CodigoOtp" />
 
-                <!-- Redirección directa hacia la vista Contrasena -->
-                <a href="@Url.Action("Contrasena", "Account")" id="btnValidar" class="btn-verify">VERIFICAR CÓDIGO</a>
+                <button type="button" id="btnVerificar" class="btn-verify">VERIFICAR CÓDIGO</button>
             </form>
 
             <div class="options-bar">
