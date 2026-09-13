@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using ESFE.ClinicaWEB.Services;
+using ESFE.ClinicaWEB.Models;
 
 namespace ESFE.ClinicaWEB.Controllers
 {
@@ -104,6 +105,104 @@ namespace ESFE.ClinicaWEB.Controllers
             }
 
             return BadRequest(new { exito = false, mensaje = "Correo o contraseña incorrectos." });
+        }
+
+        // POST: /Account/Registrar
+        [HttpPost]
+        public async Task<IActionResult> Registrar(RegisterViewModel model)
+        {
+            bool isAjax = Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+            if (!ModelState.IsValid)
+            {
+                if (isAjax)
+                    return Json(new { exito = false, mensaje = "Datos del formulario inválidos." });
+
+                return View("Cuenta", model);
+            }
+
+            string correoNormalizado = model.Email.Trim().ToLower();
+
+            // 1. Separar Nombres y Apellidos
+            string nombres = model.FullName.Trim();
+            string apellidos = "";
+            var partes = model.FullName.Trim().Split(' ');
+            if (partes.Length > 1)
+            {
+                nombres = partes[0];
+                apellidos = string.Join(" ", partes, 1, partes.Length - 1);
+            }
+
+            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                // 2. Comprobar si el correo ya existe
+                string checkQuery = "SELECT COUNT(1) FROM dbo.Usuarios WHERE LOWER(correo) = @correo";
+                using (var checkCmd = new SqlCommand(checkQuery, conn))
+                {
+                    checkCmd.Parameters.AddWithValue("@correo", correoNormalizado);
+                    int existe = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
+                    if (existe > 0)
+                    {
+                        string msgError = "El correo electrónico ya se encuentra registrado.";
+                        if (isAjax)
+                            return Json(new { exito = false, mensaje = msgError });
+
+                        ModelState.AddModelError("Email", msgError);
+                        return View("Cuenta", model);
+                    }
+                }
+
+                // 3. Buscar dinámicamente el rol_id para el rol 'Cliente'
+                int rolClienteId = 5;
+                string getRolQuery = "SELECT rol_id FROM dbo.Roles WHERE LOWER(nombre_rol) = 'cliente'";
+                using (var rolCmd = new SqlCommand(getRolQuery, conn))
+                {
+                    var result = await rolCmd.ExecuteScalarAsync();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        rolClienteId = Convert.ToInt32(result);
+                    }
+                }
+
+                // 4. Insertar nuevo usuario asignando SIEMPRE el rol_id de Cliente
+                string insertQuery = @"
+                    INSERT INTO dbo.Usuarios (username, correo, password_hash, nombres, apellidos, rol_id, especialidad_id, estado, fecha_creacion)
+                    VALUES (@username, @correo, @password_hash, @nombres, @apellidos, @rol_id, NULL, 1, GETDATE())";
+
+                using (var insertCmd = new SqlCommand(insertQuery, conn))
+                {
+                    insertCmd.Parameters.AddWithValue("@username", correoNormalizado);
+                    insertCmd.Parameters.AddWithValue("@correo", correoNormalizado);
+                    insertCmd.Parameters.AddWithValue("@password_hash", HashSHA256(model.Password));
+                    insertCmd.Parameters.AddWithValue("@nombres", nombres);
+                    insertCmd.Parameters.AddWithValue("@apellidos", apellidos);
+                    insertCmd.Parameters.AddWithValue("@rol_id", rolClienteId);
+
+                    await insertCmd.ExecuteNonQueryAsync();
+                }
+
+                // Si viene de fetch/AJAX enviamos el JSON de redirección, si no, respuesta 302 estándar
+                if (isAjax)
+                {
+                    return Json(new { exito = true, redirectUrl = Url.Action("Login", "Account") });
+                }
+
+                return RedirectToAction("Login");
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = "Error al registrar la cuenta: " + ex.Message;
+                if (isAjax)
+                    return Json(new { exito = false, mensaje = errorMsg });
+
+                ModelState.AddModelError("", errorMsg);
+                return View("Cuenta", model);
+            }
         }
 
         // POST: /Account/EnviarCodigoRecuperacion
@@ -245,12 +344,14 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet] public IActionResult Recuperar() => View();
         [HttpGet] public IActionResult Verificacion() => View();
         [HttpGet] public IActionResult Contrasena() => View();
+        [HttpGet] public IActionResult Cuenta() => View();
         [HttpGet] public IActionResult Inicio() => View();
         [HttpGet] public IActionResult Citas() => View();
         [HttpGet] public IActionResult Agendar() => View();
         [HttpGet] public IActionResult Expedientes() => View("expedientes");
         [HttpGet] public IActionResult Consulta() => View();
         [HttpGet] public IActionResult Facturacion() => View("facturacion");
+        [HttpGet] public IActionResult Confirma_pago() => View();
 
         private static string[] ObtenerModulosSegunRol(string rol)
         {

@@ -1,7 +1,7 @@
 ﻿document.addEventListener("DOMContentLoaded", () => {
     const medicosPorEspecialidad = {
         "Cardiología": [
-            { id: 1, nombre: "Dr. Carlos Mendoza" },
+            { id: 1, nombre: "Dr. Roberto Gómez" },
             { id: 2, nombre: "Dra. Sofía Alvarado" }
         ],
         "Medicina General": [
@@ -30,6 +30,7 @@
     const btnOpenLogout = document.getElementById("btnOpenLogout");
     const btnCancelLogout = document.getElementById("btnCancelLogout");
 
+    // Formateo para DUI ( El Salvador: 00000000-0 )
     if (inputDui) {
         inputDui.addEventListener("input", (e) => {
             let val = e.target.value.replace(/\D/g, "");
@@ -41,6 +42,7 @@
         });
     }
 
+    // Formateo para Teléfono ( 0000-0000 )
     if (inputTelefono) {
         inputTelefono.addEventListener("input", (e) => {
             let val = e.target.value.replace(/\D/g, "");
@@ -52,6 +54,7 @@
         });
     }
 
+    // Cargar médicos según la especialidad seleccionada
     if (especialidadSelect && medicoSelect) {
         especialidadSelect.addEventListener("change", (e) => {
             const espSelected = e.target.value;
@@ -60,7 +63,7 @@
             if (medicosPorEspecialidad[espSelected]) {
                 medicosPorEspecialidad[espSelected].forEach((m) => {
                     const opt = document.createElement("option");
-                    opt.value = m.id;
+                    opt.value = m.nombre;
                     opt.textContent = m.nombre;
                     medicoSelect.appendChild(opt);
                 });
@@ -71,6 +74,7 @@
         });
     }
 
+    // Cargar horas cuando selecciona un médico
     if (medicoSelect && horarioSelect) {
         medicoSelect.addEventListener("change", () => {
             horarioSelect.innerHTML = '<option value="" disabled selected>Seleccione Hora</option>';
@@ -83,22 +87,22 @@
         });
     }
 
+    // Redirección al confirmar y agendar la cita
     if (agendarForm) {
-        agendarForm.addEventListener("submit", () => {
-            alert("¡Cita agendada con éxito! Se enviará la confirmación al paciente.");
+        agendarForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            // Redirige directamente a la pasarela de pago
+            window.location.href = "/Account/Confirma_pago";
         });
     }
 
+    // Modal de Cerrar Sesión
     if (btnOpenLogout && logoutModal) {
-        btnOpenLogout.addEventListener("click", () => {
-            logoutModal.classList.remove("hidden");
-        });
+        btnOpenLogout.addEventListener("click", () => logoutModal.classList.remove("hidden"));
     }
 
     if (btnCancelLogout && logoutModal) {
-        btnCancelLogout.addEventListener("click", () => {
-            logoutModal.classList.add("hidden");
-        });
+        btnCancelLogout.addEventListener("click", () => logoutModal.classList.add("hidden"));
     }
 
     if (logoutModal) {

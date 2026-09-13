@@ -48,7 +48,6 @@
             <label>
                 <input type="checkbox" id="chkRecordar"> Recuérdame
             </label>
-            <!-- Redirección con Razor Helper -->
             <a href="@Url.Action("Recuperar", "Account")" id="lnkOlvidaste">¿Olvidaste tu contraseña?</a>
         </div>
 
@@ -56,11 +55,17 @@
 
         <div class="divider"><span>o</span></div>
 
-        <button type="button" id="btnIrRegistro" class="btn-secondary">CREAR UNA CUENTA</button>
-        <!---->
+        <!-- Botón mantenido como <button> con redirección directa a /Account/Cuenta -->
+        <button type="button"
+                id="btnIrRegistro"
+                class="btn-secondary"
+                onclick="location.href='@Url.Action("Cuenta", "Account")'">
+            CREAR UNA CUENTA
+        </button>
+
         <p class="footer-links">¿Necesitas ayuda? | Términos y Condiciones</p>
     </div>
-    <!---->
-    <script src="~/js/Login.js"></script>
+
+    <script src="~/js/Login.js" asp-append-version="true"></script>
 </body>
 </html>

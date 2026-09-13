@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const eyeIcon = document.getElementById('eyeIcon');
     const eyeOffIcon = document.getElementById('eyeOffIcon');
     const btnLogin = document.getElementById('btnLogin');
-    const btnIrRegistro = document.getElementById('btnIrRegistro');
+    const btnCuenta = document.getElementById('btnIrRegistro') || document.getElementById('btnCuenta');
     const errorMsg = document.getElementById('errorMsg');
     const lnkOlvidaste = document.getElementById('lnkOlvidaste');
 
@@ -44,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (errorMsg) errorMsg.style.display = 'none';
 
-        // Petición hacia ASP.NET Core MVC
         const formData = new FormData();
         formData.append("correo", correoVal);
         formData.append("contrasena", contrasenaVal);
@@ -61,21 +60,17 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => {
                 if (data.exito || data.success) {
-                    // Limpiar sesión previa para evitar mantener datos desfasados
                     sessionStorage.clear();
 
-                    // Extraer propiedades recibidas dinámicamente desde el backend
                     const nombreReal = data.usuario || data.nombreUsuario || data.nombreCompleto || data.nombre || data.correo || 'Usuario';
                     const rolReal = data.rol || data.nombreRol || data.especialidad || '';
                     const modulosReal = data.modulos || data.modulosPermitidos || [];
 
-                    // Guardar datos actualizados en sessionStorage
                     sessionStorage.setItem('usuario', nombreReal);
                     sessionStorage.setItem('rol', rolReal);
                     sessionStorage.setItem('modulos', JSON.stringify(modulosReal));
                     sessionStorage.setItem('redirectUrl', data.redirectUrl || '/Account/Inicio');
 
-                    // Notificación si se ejecuta en WebView2 (Desktop)
                     if (window.chrome && window.chrome.webview) {
                         window.chrome.webview.postMessage(JSON.stringify({
                             accion: "sesion_iniciada",
@@ -84,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }));
                     }
 
-                    // Redirección a la vista de Inicio
                     window.location.href = data.redirectUrl || '/Account/Inicio';
                 } else {
                     if (errorMsg) {
@@ -107,10 +101,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (passwordInput) passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') ejecutarInicioSesion(); });
     if (correoInput) correoInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') ejecutarInicioSesion(); });
 
-    // Enlace: Ir a Crear Cuenta
-    if (btnIrRegistro) {
-        btnIrRegistro.addEventListener('click', () => {
-            window.location.href = "/Account/Registro";
+    // Redirección a la vista Cuenta (/Account/Cuenta)
+    if (btnCuenta) {
+        btnCuenta.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = "/Account/Cuenta";
         });
     }
 
