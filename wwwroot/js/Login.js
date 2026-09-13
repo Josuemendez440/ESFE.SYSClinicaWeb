@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const correoInput = document.getElementById('txtCorreo');
     const passwordInput = document.getElementById('txtContrasena');
-    const chkRecordar = document.getElementById('chkRecordar');
     const togglePassword = document.getElementById('togglePassword');
     const eyeIcon = document.getElementById('eyeIcon');
     const eyeOffIcon = document.getElementById('eyeOffIcon');
@@ -45,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (errorMsg) errorMsg.style.display = 'none';
 
-        // Petición hacia ASP.NET Core MVC (Web)
+        // Petición hacia ASP.NET Core MVC
         const formData = new FormData();
         formData.append("correo", correoVal);
         formData.append("contrasena", contrasenaVal);
@@ -61,23 +60,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 return response.json();
             })
             .then(data => {
-                if (data.exito) {
-                    // Guardar datos en sessionStorage de manera segura
-                    sessionStorage.setItem('usuario', data.usuario);
-                    sessionStorage.setItem('rol', data.rol);
-                    sessionStorage.setItem('modulos', JSON.stringify(data.modulos || []));
-                    sessionStorage.setItem('redirectUrl', data.redirectUrl);
+                if (data.exito || data.success) {
+                    // Limpiar sesión previa para evitar mantener datos desfasados
+                    sessionStorage.clear();
 
-                    // Si estás en WebView2 (Escritorio), también notifica a la App
+                    // Extraer propiedades recibidas dinámicamente desde el backend
+                    const nombreReal = data.usuario || data.nombreUsuario || data.nombreCompleto || data.nombre || data.correo || 'Usuario';
+                    const rolReal = data.rol || data.nombreRol || data.especialidad || '';
+                    const modulosReal = data.modulos || data.modulosPermitidos || [];
+
+                    // Guardar datos actualizados en sessionStorage
+                    sessionStorage.setItem('usuario', nombreReal);
+                    sessionStorage.setItem('rol', rolReal);
+                    sessionStorage.setItem('modulos', JSON.stringify(modulosReal));
+                    sessionStorage.setItem('redirectUrl', data.redirectUrl || '/Account/Inicio');
+
+                    // Notificación si se ejecuta en WebView2 (Desktop)
                     if (window.chrome && window.chrome.webview) {
                         window.chrome.webview.postMessage(JSON.stringify({
                             accion: "sesion_iniciada",
-                            usuario: data.usuario,
-                            rol: data.rol
+                            usuario: nombreReal,
+                            rol: rolReal
                         }));
                     }
 
-                    // Redirigir
+                    // Redirección a la vista de Inicio
                     window.location.href = data.redirectUrl || '/Account/Inicio';
                 } else {
                     if (errorMsg) {

@@ -21,19 +21,22 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <!-- MENÚ DINÁMICO CONTROLADO POR ROL/MÓDULOS -->
                     <ul class="navbar-nav flex-grow-1 nav">
-                        <li class="nav-item" data-module="Inicio">
+                        <li class="nav-item" data-module="inicio">
                             <a class="nav-link text-dark" href="/Account/Inicio">Inicio</a>
                         </li>
-                        <li class="nav-item" data-module="Citas">
+                        <li class="nav-item" data-module="citas">
                             <a class="nav-link text-dark citas-label" href="/Account/Citas">Mis Citas</a>
                         </li>
-                        <li class="nav-item" data-module="Agendar">
+                        <li class="nav-item" data-module="agendar">
                             <a class="nav-link text-dark" href="/Account/Agendar">Agendar Cita</a>
                         </li>
-                        <li class="nav-item" data-module="Gestion Expedientes">
+                        <li class="nav-item" data-module="expedientes">
                             <a class="nav-link text-dark" href="/Account/Expedientes">Gestión Expedientes</a>
                         </li>
-                        <li class="nav-item" data-module="Facturacion">
+                        <li class="nav-item" data-module="consulta">
+                            <a class="nav-link text-dark" href="/Account/Consulta">Consulta Médica</a>
+                        </li>
+                        <li class="nav-item" data-module="facturacion">
                             <a class="nav-link text-dark" href="/Account/Facturacion">Módulo de Facturación</a>
                         </li>
                     </ul>
@@ -62,6 +65,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/permisos.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
