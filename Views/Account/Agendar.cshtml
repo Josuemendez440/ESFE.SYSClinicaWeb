@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="~/css/agendar.css?v=1.1" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/agendar.css?v=1.2" asp-append-version="true" />
 </head>
 <body>
     <div class="app-container">
@@ -69,11 +69,14 @@
 
             <section class="content-body">
                 <div class="form-card">
-                    <form id="agendarForm" method="post" asp-action="AgendarCita">
+                    <form id="agendarForm" asp-controller="Account" asp-action="Agendar" method="post">
+                        @Html.AntiForgeryToken()
 
                         <!-- 1. Datos del Paciente -->
                         <div class="form-section">
                             <h3>1. Datos del Paciente</h3>
+
+                            <!-- Fila 1: Nombres y Apellidos -->
                             <div class="form-grid-2">
                                 <div class="form-group">
                                     <label for="nombres">Nombres</label>
@@ -83,6 +86,10 @@
                                     <label for="apellidos">Apellidos</label>
                                     <input type="text" id="apellidos" name="Apellidos" placeholder="Ej. Pérez Gómez" required />
                                 </div>
+                            </div>
+
+                            <!-- Fila 2: Fecha de Nacimiento y DUI -->
+                            <div class="form-grid-2">
                                 <div class="form-group">
                                     <label for="fechaNacimiento">Fecha de Nacimiento</label>
                                     <input type="date" id="fechaNacimiento" name="FechaNacimiento" required />
@@ -92,6 +99,8 @@
                                     <input type="text" id="dui" name="Dui" placeholder="00000000-0" required />
                                 </div>
                             </div>
+
+                            <!-- Fila 3: Número de Teléfono (Ancho completo) -->
                             <div class="form-group full-width">
                                 <label for="telefono">Número de Teléfono</label>
                                 <input type="tel" id="telefono" name="Telefono" placeholder="7000-0000" required />
@@ -101,6 +110,8 @@
                         <!-- 2. Detalles de la Cita Médica -->
                         <div class="form-section">
                             <h3>2. Detalles de la Cita Médica</h3>
+
+                            <!-- Fila 1: Especialidad y Médico -->
                             <div class="form-grid-2">
                                 <div class="form-group">
                                     <label for="especialidad">Tipo de Consulta / Especialidad</label>
@@ -113,22 +124,30 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="medico">Médico Especialista</label>
-                                    <select id="medico" name="MedicoId" required disabled>
+                                    <select id="medico" name="Medico" required disabled>
                                         <option value="" disabled selected>Seleccione Especialidad primero</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <!-- Fila 2: Fecha de la Cita y Hora de la Consulta -->
+                            <div class="form-grid-2">
                                 <div class="form-group">
                                     <label for="fechaCita">Fecha de la Cita</label>
                                     <input type="date" id="fechaCita" name="FechaCita" required />
                                 </div>
                                 <div class="form-group">
-                                    <label for="horario">Hora de la Consulta</label>
-                                    <select id="horario" name="Horario" required>
-                                        <option value="" disabled selected>Seleccione Hora</option>
+                                    <label for="horaConsulta">Hora de la Consulta</label>
+                                    <select id="horaConsulta" name="HoraConsulta" required disabled>
+                                        <option value="" disabled selected>Seleccione Médico primero</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Valores Ocultos / Montos -->
+                        <input type="hidden" name="MontoConsulta" value="30.00" />
+                        <input type="hidden" name="MontoAnticipo" value="10.00" />
 
                         <div class="form-actions">
                             <button type="submit" class="btn-primary">Confirmar y Agendar Cita</button>
@@ -158,6 +177,8 @@
         </div>
     </div>
 
+    <!-- Scripts necesarios -->
+    <script src="~/js/agendar.js" asp-append-version="true"></script>
     <script src="~/js/permisos.js" asp-append-version="true"></script>
     <script src="~/js/inicio.js" asp-append-version="true"></script>
 </body>

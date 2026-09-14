@@ -22,9 +22,10 @@
     const agendarForm = document.getElementById("agendarForm");
     const especialidadSelect = document.getElementById("especialidad");
     const medicoSelect = document.getElementById("medico");
-    const horarioSelect = document.getElementById("horario");
+    const horaConsultaSelect = document.getElementById("horaConsulta");
     const inputDui = document.getElementById("dui");
     const inputTelefono = document.getElementById("telefono");
+    const inputFechaNacimiento = document.getElementById("fechaNacimiento");
 
     const logoutModal = document.getElementById("logoutModal");
     const btnOpenLogout = document.getElementById("btnOpenLogout");
@@ -54,7 +55,41 @@
         });
     }
 
-    // Cargar médicos según la especialidad seleccionada
+    // Función para validar edad (sin romper el flujo)
+    function validarEdadPaciente(fechaNacStr) {
+        if (!fechaNacStr) return true;
+
+        const partes = fechaNacStr.split("-");
+        if (partes.length !== 3) return true;
+
+        const anio = parseInt(partes[0], 10);
+        if (partes[0].length < 4 || isNaN(anio)) return true;
+
+        const mes = parseInt(partes[1], 10) - 1;
+        const dia = parseInt(partes[2], 10);
+
+        const fechaNac = new Date(anio, mes, dia);
+        const hoy = new Date();
+
+        let edad = hoy.getFullYear() - fechaNac.getFullYear();
+        const mesDiff = hoy.getMonth() - fechaNac.getMonth();
+
+        if (mesDiff < 0 || (mesDiff === 0 && hoy.getDate() < fechaNac.getDate())) {
+            edad--;
+        }
+
+        if (edad > 80 || edad < 0) {
+            if (inputFechaNacimiento) {
+                inputFechaNacimiento.value = "";
+                inputFechaNacimiento.focus();
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    // 1. Cargar médicos según la especialidad seleccionada
     if (especialidadSelect && medicoSelect) {
         especialidadSelect.addEventListener("change", (e) => {
             const espSelected = e.target.value;
@@ -71,29 +106,85 @@
             } else {
                 medicoSelect.disabled = true;
             }
+
+            if (horaConsultaSelect) {
+                horaConsultaSelect.innerHTML = '<option value="" disabled selected>Seleccione Médico primero</option>';
+                horaConsultaSelect.disabled = true;
+            }
         });
     }
 
-    // Cargar horas cuando selecciona un médico
-    if (medicoSelect && horarioSelect) {
+    // 2. Cargar horas cuando se selecciona un médico
+    if (medicoSelect && horaConsultaSelect) {
         medicoSelect.addEventListener("change", () => {
-            horarioSelect.innerHTML = '<option value="" disabled selected>Seleccione Hora</option>';
+            horaConsultaSelect.innerHTML = '<option value="" disabled selected>Seleccione Hora</option>';
             horariosDisponibles.forEach((h) => {
                 const opt = document.createElement("option");
                 opt.value = h;
                 opt.textContent = h;
-                horarioSelect.appendChild(opt);
+                horaConsultaSelect.appendChild(opt);
             });
+            horaConsultaSelect.disabled = false;
         });
     }
 
-    // Redirección al confirmar y agendar la cita
+    // 3. Guardar datos en el navegador y REDIRIGIR explícitamente
     if (agendarForm) {
         agendarForm.addEventListener("submit", (e) => {
+            // Evitar recarga predeterminada del formulario HTML
             e.preventDefault();
-            // Redirige directamente a la pasarela de pago
+
+            // Validar edad si el campo existe
+            if (inputFechaNacimiento && inputFechaNacimiento.value) {
+                if (!validarEdadPaciente(inputFechaNacimiento.value)) {
+                    return; // Si la edad supera 80 se detiene y borra la fecha
+                }
+            }
+
+            // Capturar datos del formulario
+            const nombres = document.getElementById("nombres")?.value || "";
+            const apellidos = document.getElementById("apellidos")?.value || "";
+            const especialidad = especialidadSelect?.value || "";
+            const medico = medicoSelect?.value || "";
+            const fechaCita = document.getElementById("fechaCita")?.value || "";
+            const horaConsulta = horaConsultaSelect?.value || "";
+
+            // Formar objeto con los datos procesados
+            const datosCita = {
+                paciente: `${nombres} ${apellidos}`.trim(),
+                especialidadMedico: `${especialidad} – ${medico}`,
+                fechaHora: `${formatearFecha(fechaCita)} – ${horaConsulta}`,
+                especialidad: especialidad,
+                medico: medico,
+                fecha: fechaCita,
+                hora: horaConsulta
+            };
+
+            // Guardar en localStorage para la vista de pago
+            localStorage.setItem("resumenCitaData", JSON.stringify(datosCita));
+            localStorage.setItem("citaAgendada", JSON.stringify(datosCita));
+
+            // REDIRECCIÓN DIRECTA A LA PANTALLA DE PAGO
             window.location.href = "/Account/Confirma_pago";
         });
+    }
+
+    // Función auxiliar para formatear la fecha
+    function formatearFecha(fechaStr) {
+        if (!fechaStr) return "";
+        const partes = fechaStr.split("-");
+        if (partes.length !== 3) return fechaStr;
+
+        const meses = [
+            "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ];
+
+        const anio = partes[0];
+        const mes = meses[parseInt(partes[1], 10) - 1];
+        const dia = parseInt(partes[2], 10);
+
+        return `${dia} de ${mes}, ${anio}`;
     }
 
     // Modal de Cerrar Sesión

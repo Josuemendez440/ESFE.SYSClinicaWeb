@@ -1,12 +1,13 @@
-﻿* {
+﻿<style >
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
-    background-color: #f8fafc;
+    background-color: #f4f7f6;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -14,118 +15,146 @@ body {
     padding: 20px;
 }
 
-/* Contenedor Principal (Dos Columnas) */
-.checkout-container {
-    display: flex;
-    gap: 25px;
-    max-width: 950px;
-    width: 100%;
-    align-items: stretch;
+svg {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
 }
 
-.checkout-card {
+.checkout-container {
+    display: flex;
+    gap: 24px;
+    max-width: 960px;
+    width: 100%;
+    align-items: flex-start; /* Alinea ambas tarjetas arriba */
+}
+
+/* Resumen Cita */
+.summary-card {
+    flex: 1;
     background: #ffffff;
     border-radius: 16px;
     padding: 28px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    border: 1px solid #e2e8f0;
-    flex: 1;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Agrupa todo arriba sin dejar espacios masivos */
 }
 
-/* --- TÍTULOS E ICONOS --- */
-.card-title {
+.summary-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 25px;
-}
-
-    .card-title h2 {
-        font-size: 1.25rem;
-        color: #1e293b;
-        font-weight: 700;
-    }
-
-.icon-header {
-    font-size: 1.3rem;
+    gap: 10px;
     color: #0d9488;
-}
-
-/* --- RESUMEN DE CITA (Izquierda) --- */
-.info-group {
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
     margin-bottom: 20px;
 }
 
-.info-icon {
-    background: #f0fdf4;
-    color: #0d9488;
-    padding: 10px;
-    border-radius: 50%;
-    font-size: 1rem;
+    .summary-header svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .summary-header h2 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #111827;
+    }
+
+.summary-details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px; /* Distancia uniforme hacia el cuadro de precios */
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.icon-wrapper {
     width: 36px;
     height: 36px;
+    border-radius: 50%;
+    background-color: #f0fdf4;
+    color: #10b981;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
-.info-label {
-    display: block;
-    font-size: 0.72rem;
+    .icon-wrapper svg {
+        width: 18px;
+        height: 18px;
+    }
+
+.detail-label {
+    font-size: 0.7rem;
     font-weight: 700;
-    color: #94a3b8;
+    color: #9ca3af;
     letter-spacing: 0.5px;
-    margin-bottom: 2px;
 }
 
-.info-value {
-    font-size: 0.95rem;
-    color: #334155;
-    font-weight: 600;
+.detail-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-top: 1px;
 }
 
-/* Desglose de Precios */
-.price-breakdown {
+/* Precios */
+.pricing-box {
     background-color: #f8fafc;
     border: 1px dashed #cbd5e1;
     border-radius: 12px;
-    padding: 18px;
-    margin-top: 25px;
+    padding: 16px;
 }
 
 .price-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     color: #64748b;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
-    .price-row strong {
-        color: #475569;
-    }
+.price-amount {
+    font-weight: 600;
+    color: #475569;
+}
+
+.price-divider {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 8px 0;
+}
 
 .total-row {
     margin-bottom: 0;
-    padding-top: 10px;
-    border-top: 1px solid #e2e8f0;
-    font-weight: 700;
-    color: #1e293b;
-    font-size: 0.98rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #0f172a;
 }
 
-.highlight-price {
+.total-amount {
     color: #0d9488;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
 }
 
-/* --- PASARELA DE PAGO (Derecha) --- */
-.security-banner {
-    background-color: #f0fdfa;
-    border: 1px solid #ccfbf1;
+/* Tarjeta Pago */
+.payment-card {
+    flex: 1.2;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.payment-badge {
+    background-color: #ecfdf5;
+    border: 1px solid #a7f3d0;
     border-radius: 8px;
     padding: 8px 14px;
     display: flex;
@@ -134,48 +163,60 @@ body {
     margin-bottom: 20px;
 }
 
-.security-text {
-    font-size: 0.8rem;
-    color: #0d9488;
+.badge-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #047857;
+    font-size: 0.82rem;
     font-weight: 600;
 }
 
-.brand-badges {
+    .badge-left svg {
+        width: 16px;
+        height: 16px;
+    }
+
+.card-brands {
     display: flex;
     gap: 4px;
 }
 
-.badge-card {
-    background: #cbd5e1;
-    color: #475569;
-    font-size: 0.6rem;
-    font-weight: bold;
-    padding: 2px 5px;
-    border-radius: 3px;
+.brand-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #0f766e;
+    color: #ffffff;
 }
 
-/* Tarjeta Gráfica Verde */
-.virtual-card {
-    background: linear-gradient(135deg, #0f766e 0%, #064e3b 100%);
+/* Tarjeta visual */
+.credit-card-preview {
+    background: linear-gradient(135deg, #0d5c56 0%, #134e4a 100%);
     border-radius: 14px;
-    padding: 20px;
-    color: white;
-    margin-bottom: 22px;
-    box-shadow: 0 8px 16px rgba(15, 118, 110, 0.25);
+    padding: 22px;
+    color: #ffffff;
+    box-shadow: 0 10px 25px rgba(13, 92, 86, 0.25);
+    margin-bottom: 24px;
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .card-chip {
     width: 38px;
-    height: 26px;
-    background: #f1c40f;
-    border-radius: 5px;
-    margin-bottom: 22px;
+    height: 28px;
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    border-radius: 6px;
 }
 
 .card-number-display {
-    font-size: 1.1rem;
-    letter-spacing: 3px;
-    margin-bottom: 18px;
+    font-family: monospace;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    font-weight: 600;
 }
 
 .card-footer-display {
@@ -185,99 +226,105 @@ body {
 
 .card-label {
     font-size: 0.6rem;
-    opacity: 0.7;
+    color: #99f6e4;
+    letter-spacing: 0.5px;
 }
 
-.card-value {
-    font-size: 0.75rem;
+.card-holder-display, .card-exp-display {
+    font-size: 0.8rem;
     font-weight: 600;
+    text-transform: uppercase;
+    margin-top: 2px;
 }
 
-/* Formulario */
-.form-group {
+/* Inputs */
+.payment-form {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    margin-bottom: 14px;
+    gap: 14px;
 }
 
-    .form-group label {
-        font-size: 0.82rem;
-        font-weight: 600;
-        color: #475569;
-    }
+.form-group label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
 
-.input-with-icon {
+.input-icon-wrapper {
     position: relative;
     display: flex;
     align-items: center;
 }
 
-    .input-with-icon i {
-        position: absolute;
-        left: 12px;
-        color: #94a3b8;
-        font-size: 0.9rem;
+.input-icon {
+    position: absolute;
+    left: 12px;
+    width: 18px;
+    height: 18px;
+    color: #6b7280;
+}
+
+.input-icon-wrapper input {
+    width: 100%;
+    padding: 10px 12px 10px 38px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+    .input-icon-wrapper input:focus {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
     }
 
-    .input-with-icon input {
-        width: 100%;
-        padding: 10px 12px 10px 36px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        outline: none;
-        font-size: 0.88rem;
-        color: #334155;
-    }
-
-        .input-with-icon input:focus {
-            border-color: #0d9488;
-            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
-        }
-
-.form-row {
-    display: flex;
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
 
-    .form-row .form-group {
-        flex: 1;
-    }
-
-/* Botón y Términos */
 .btn-pay {
-    width: 100%;
-    padding: 12px;
-    background: #0d9488;
-    color: white;
+    background-color: #0d9488;
+    color: #ffffff;
     border: none;
     border-radius: 8px;
+    padding: 12px;
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    margin-top: 8px;
-    transition: background 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    margin-top: 8px;
+    transition: background 0.2s;
 }
 
     .btn-pay:hover {
-        background: #0f766e;
+        background-color: #0f766e;
     }
 
-.terms-text {
+    .btn-pay svg {
+        width: 18px;
+        height: 18px;
+    }
+
+.pay-disclaimer {
     font-size: 0.72rem;
-    color: #94a3b8;
-    margin-top: 14px;
+    color: #6b7280;
     text-align: center;
     line-height: 1.4;
+    margin-top: 4px;
 }
 
-/* Diseño Responsive para pantallas pequeñas */
 @media (max-width: 768px) {
     .checkout-container {
         flex-direction: column;
     }
 }
+
+</style >

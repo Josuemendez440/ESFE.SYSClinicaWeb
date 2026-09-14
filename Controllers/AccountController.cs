@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -16,6 +17,7 @@ namespace ESFE.ClinicaWEB.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly ApplicationDbContext _context;
 
         private static readonly string[] ModulosAdmin = ["inicio", "citas", "agendar", "expedientes", "consulta", "facturacion"];
         private static readonly string[] ModulosMedico = ["inicio", "consulta"];
@@ -23,10 +25,11 @@ namespace ESFE.ClinicaWEB.Controllers
         private static readonly string[] ModulosRecepcionista = ["inicio", "facturacion"];
         private static readonly string[] ModulosPaciente = ["inicio", "citas", "agendar"];
 
-        public AccountController(IConfiguration configuration, IEmailService emailService)
+        public AccountController(IConfiguration configuration, IEmailService emailService, ApplicationDbContext context)
         {
             _configuration = configuration;
             _emailService = emailService;
+            _context = context;
         }
 
         [HttpGet]
@@ -123,14 +126,45 @@ namespace ESFE.ClinicaWEB.Controllers
 
             string correoNormalizado = model.Email.Trim().ToLower();
 
-            // 1. Separar Nombres y Apellidos
-            string nombres = model.FullName.Trim();
+            // 1. Dividir FullName sin perder palabras y extraer componentes para el username
+            var partes = model.FullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            string nombres = "";
             string apellidos = "";
-            var partes = model.FullName.Trim().Split(' ');
-            if (partes.Length > 1)
+            string primerNombreLimpio = RemoverAcentos(partes[0]);
+            string primerApellidoLimpio = "";
+
+            if (partes.Length == 1)
             {
                 nombres = partes[0];
-                apellidos = string.Join(" ", partes, 1, partes.Length - 1);
+                apellidos = "";
+            }
+            else if (partes.Length == 2)
+            {
+                nombres = partes[0];
+                apellidos = partes[1];
+                primerApellidoLimpio = RemoverAcentos(partes[1]);
+            }
+            else if (partes.Length == 3)
+            {
+                nombres = partes[0];
+                apellidos = $"{partes[1]} {partes[2]}";
+                primerApellidoLimpio = RemoverAcentos(partes[1]);
+            }
+            else
+            {
+                nombres = $"{partes[0]} {partes[1]}";
+                apellidos = string.Join(" ", partes.Skip(2));
+                primerApellidoLimpio = RemoverAcentos(partes[2]);
+            }
+
+            // 2. Generar Username Base (Ej: "josue" + "m" -> "josuem")
+            string inicialApellido = !string.IsNullOrEmpty(primerApellidoLimpio) ? primerApellidoLimpio[0].ToString() : "";
+            string usernameBase = $"{primerNombreLimpio}{inicialApellido}".ToLower();
+
+            if (string.IsNullOrWhiteSpace(usernameBase))
+            {
+                usernameBase = correoNormalizado.Split('@')[0];
             }
 
             string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
@@ -140,13 +174,13 @@ namespace ESFE.ClinicaWEB.Controllers
                 using var conn = new SqlConnection(connectionString);
                 await conn.OpenAsync();
 
-                // 2. Comprobar si el correo ya existe
-                string checkQuery = "SELECT COUNT(1) FROM dbo.Usuarios WHERE LOWER(correo) = @correo";
-                using (var checkCmd = new SqlCommand(checkQuery, conn))
+                // 3. Comprobar si el correo ya existe
+                string checkEmailQuery = "SELECT COUNT(1) FROM dbo.Usuarios WHERE LOWER(correo) = @correo";
+                using (var checkEmailCmd = new SqlCommand(checkEmailQuery, conn))
                 {
-                    checkCmd.Parameters.AddWithValue("@correo", correoNormalizado);
-                    int existe = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
-                    if (existe > 0)
+                    checkEmailCmd.Parameters.AddWithValue("@correo", correoNormalizado);
+                    int existeCorreo = Convert.ToInt32(await checkEmailCmd.ExecuteScalarAsync());
+                    if (existeCorreo > 0)
                     {
                         string msgError = "El correo electrónico ya se encuentra registrado.";
                         if (isAjax)
@@ -157,7 +191,27 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
-                // 3. Buscar dinámicamente el rol_id para el rol 'Cliente'
+                // 4. Garantizar Username Único (Agrega correlativo 1, 2, 3... si ya existe)
+                string usernameGenerado = usernameBase;
+                int contador = 1;
+
+                while (true)
+                {
+                    string checkUserQuery = "SELECT COUNT(1) FROM dbo.Usuarios WHERE LOWER(username) = @username";
+                    using var checkUserCmd = new SqlCommand(checkUserQuery, conn);
+                    checkUserCmd.Parameters.AddWithValue("@username", usernameGenerado);
+                    int existeUser = Convert.ToInt32(await checkUserCmd.ExecuteScalarAsync());
+
+                    if (existeUser == 0)
+                    {
+                        break; // Username disponible
+                    }
+
+                    usernameGenerado = $"{usernameBase}{contador}";
+                    contador++;
+                }
+
+                // 5. Buscar dinámicamente el rol_id para el rol 'Cliente'
                 int rolClienteId = 5;
                 string getRolQuery = "SELECT rol_id FROM dbo.Roles WHERE LOWER(nombre_rol) = 'cliente'";
                 using (var rolCmd = new SqlCommand(getRolQuery, conn))
@@ -169,14 +223,14 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
-                // 4. Insertar nuevo usuario asignando SIEMPRE el rol_id de Cliente
+                // 6. Insertar usuario guardando username, correo, nombres y apellidos correctamente
                 string insertQuery = @"
                     INSERT INTO dbo.Usuarios (username, correo, password_hash, nombres, apellidos, rol_id, especialidad_id, estado, fecha_creacion)
                     VALUES (@username, @correo, @password_hash, @nombres, @apellidos, @rol_id, NULL, 1, GETDATE())";
 
                 using (var insertCmd = new SqlCommand(insertQuery, conn))
                 {
-                    insertCmd.Parameters.AddWithValue("@username", correoNormalizado);
+                    insertCmd.Parameters.AddWithValue("@username", usernameGenerado);
                     insertCmd.Parameters.AddWithValue("@correo", correoNormalizado);
                     insertCmd.Parameters.AddWithValue("@password_hash", HashSHA256(model.Password));
                     insertCmd.Parameters.AddWithValue("@nombres", nombres);
@@ -186,7 +240,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     await insertCmd.ExecuteNonQueryAsync();
                 }
 
-                // Si viene de fetch/AJAX enviamos el JSON de redirección, si no, respuesta 302 estándar
                 if (isAjax)
                 {
                     return Json(new { exito = true, redirectUrl = Url.Action("Login", "Account") });
@@ -215,7 +268,6 @@ namespace ESFE.ClinicaWEB.Controllers
             string correoNormalizado = model.Correo.Trim().ToLower();
             bool existeUsuario = false;
 
-            // 1. Verificar existencia en la Base de Datos
             try
             {
                 string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
@@ -237,10 +289,8 @@ namespace ESFE.ClinicaWEB.Controllers
             if (!existeUsuario && correoNormalizado != "admin@curavita.com")
                 return Json(new { exito = false, mensaje = "El correo electrónico no se encuentra registrado." });
 
-            // 2. Generar código OTP
             string codigoOtp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
 
-            // 3. Guardar código en BD con 15 minutos de vigencia
             try
             {
                 string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
@@ -260,7 +310,6 @@ namespace ESFE.ClinicaWEB.Controllers
             }
             catch { }
 
-            // 4. Enviar e-mail con plantilla
             try
             {
                 await _emailService.SendOtpEmailAsync(correoNormalizado, codigoOtp);
@@ -347,11 +396,48 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet] public IActionResult Cuenta() => View();
         [HttpGet] public IActionResult Inicio() => View();
         [HttpGet] public IActionResult Citas() => View();
-        [HttpGet] public IActionResult Agendar() => View();
+
+        // GET: /Account/Agendar
+        [HttpGet]
+        public IActionResult Agendar() => View();
+
+        // POST: /Account/Agendar (Guarda la cita en la BD SQL usando Entity Framework Core)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Agendar(CitasViewModel cita)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Citas.Add(cita);
+                await _context.SaveChangesAsync();
+
+                return RedirectToAction("Confirma_pago", new { id = cita.Id });
+            }
+
+            return View(cita);
+        }
+
+        // GET: /Account/Confirma_pago/5 (Obtiene los detalles de la cita agendada por su ID)
+        [HttpGet]
+        public async Task<IActionResult> Confirma_pago(int? id)
+        {
+            if (id == null)
+            {
+                return View();
+            }
+
+            var cita = await _context.Citas.FindAsync(id);
+            if (cita == null)
+            {
+                return NotFound();
+            }
+
+            return View(cita);
+        }
+
         [HttpGet] public IActionResult Expedientes() => View("expedientes");
         [HttpGet] public IActionResult Consulta() => View();
         [HttpGet] public IActionResult Facturacion() => View("facturacion");
-        [HttpGet] public IActionResult Confirma_pago() => View();
 
         private static string[] ObtenerModulosSegunRol(string rol)
         {
@@ -387,6 +473,21 @@ namespace ESFE.ClinicaWEB.Controllers
             for (int i = 0; i < bytes.Length; i++)
                 builder.Append(bytes[i].ToString("x2"));
             return builder.ToString();
+        }
+
+        private static string RemoverAcentos(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto)) return "";
+            string normalized = texto.Normalize(NormalizationForm.FormD);
+            StringBuilder sb = new();
+            foreach (char c in normalized)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(c))
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
         }
     }
 
