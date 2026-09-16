@@ -96,6 +96,7 @@ namespace ESFE.ClinicaWEB.Controllers
                         exito = true,
                         mensaje = $"¡Bienvenido/a {nombreCompleto}!",
                         usuario = nombreCompleto,
+                        correo = correoNormalizado,
                         rol = rolParaMostrar,
                         redirectUrl = "/Account/Inicio",
                         modulos = ObtenerModulosSegunRol(rolBD)
@@ -395,7 +396,19 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet] public IActionResult Contrasena() => View();
         [HttpGet] public IActionResult Cuenta() => View();
         [HttpGet] public IActionResult Inicio() => View();
-        [HttpGet] public IActionResult Citas() => View();
+        [HttpGet]
+        public async Task<IActionResult> Citas()
+        {
+            try
+            {
+                var citas = await _context.Citas.OrderByDescending(c => c.FechaHora).ToListAsync();
+                return View(citas);
+            }
+            catch
+            {
+                return View();
+            }
+        }
 
         // GET: /Account/Agendar
         [HttpGet]
@@ -435,9 +448,285 @@ namespace ESFE.ClinicaWEB.Controllers
             return View(cita);
         }
 
+        // POST: /Account/ConfirmarPago
+        [HttpPost]
+        public async Task<IActionResult> ConfirmarPago()
+        {
+            ConfirmarPagoDto model;
+
+            try
+            {
+                if (Request.HasJsonContentType())
+                {
+                    model = await Request.ReadFromJsonAsync<ConfirmarPagoDto>() ?? new ConfirmarPagoDto();
+                }
+                else if (Request.HasFormContentType)
+                {
+                    var form = await Request.ReadFormAsync();
+                    model = new ConfirmarPagoDto
+                    {
+                        CitaId = int.TryParse(form["CitaId"], out var cid) ? cid : 0,
+                        Paciente = form["Paciente"].ToString(),
+                        Especialidad = form["Especialidad"].ToString(),
+                        Medico = form["Medico"].ToString(),
+                        Fecha = form["Fecha"].ToString(),
+                        Hora = form["Hora"].ToString(),
+                        FechaHora = form["FechaHora"].ToString(),
+                        Correo = form["Correo"].ToString(),
+                        TitularTarjeta = form["TitularTarjeta"].ToString(),
+                        NumeroTarjeta = form["NumeroTarjeta"].ToString(),
+                        Expiracion = form["Expiracion"].ToString(),
+                        Cvv = form["Cvv"].ToString()
+                    };
+
+                    if (decimal.TryParse(form["PrecioTotal"], NumberStyles.Any, CultureInfo.InvariantCulture, out var pt)) model.PrecioTotal = pt;
+                    if (decimal.TryParse(form["MontoAnticipo"], NumberStyles.Any, CultureInfo.InvariantCulture, out var ma)) model.MontoAnticipo = ma;
+                    if (decimal.TryParse(form["SaldoPendiente"], NumberStyles.Any, CultureInfo.InvariantCulture, out var sp)) model.SaldoPendiente = sp;
+                }
+                else
+                {
+                    model = new ConfirmarPagoDto();
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { exito = false, mensaje = "Datos de solicitud inválidos: " + ex.Message });
+            }
+
+            // 1. Resolver Fecha y Hora de la cita
+            DateTime fechaHoraFinal = DateTime.Now;
+            bool fechaParseada = false;
+
+            if (!string.IsNullOrWhiteSpace(model.Fecha) && !string.IsNullOrWhiteSpace(model.Hora))
+            {
+                string combined = $"{model.Fecha.Trim()} {model.Hora.Trim()}";
+                if (DateTime.TryParse(combined, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dtInv))
+                {
+                    fechaHoraFinal = dtInv;
+                    fechaParseada = true;
+                }
+                else if (DateTime.TryParse(combined, new CultureInfo("es-ES"), DateTimeStyles.None, out var dtEs))
+                {
+                    fechaHoraFinal = dtEs;
+                    fechaParseada = true;
+                }
+            }
+
+            if (!fechaParseada && !string.IsNullOrWhiteSpace(model.Fecha))
+            {
+                if (DateTime.TryParse(model.Fecha.Trim(), out var dtSoloFecha))
+                {
+                    fechaHoraFinal = dtSoloFecha;
+                    fechaParseada = true;
+                }
+            }
+
+            if (!fechaParseada && !string.IsNullOrWhiteSpace(model.FechaHora))
+            {
+                if (DateTime.TryParse(model.FechaHora.Trim(), out var dtDirecto))
+                {
+                    fechaHoraFinal = dtDirecto;
+                    fechaParseada = true;
+                }
+            }
+
+            string nombrePaciente = !string.IsNullOrWhiteSpace(model.Paciente) ? model.Paciente.Trim() : "Paciente Curavita";
+            string nombreEspecialidad = !string.IsNullOrWhiteSpace(model.Especialidad) ? model.Especialidad.Trim() : "Medicina General";
+            string nombreMedico = !string.IsNullOrWhiteSpace(model.Medico) ? model.Medico.Trim() : "Dr. Roberto Gómez";
+
+            decimal total = model.PrecioTotal > 0 ? model.PrecioTotal : 50.00m;
+            decimal anticipo = model.MontoAnticipo > 0 ? model.MontoAnticipo : 12.50m;
+            decimal saldo = total - anticipo;
+
+            CitasViewModel citaProcesada;
+
+            // 2. Procesar registro en la Base de Datos
+            try
+            {
+                if (model.CitaId > 0)
+                {
+                    var citaExistente = await _context.Citas.FindAsync(model.CitaId);
+                    if (citaExistente != null)
+                    {
+                        citaExistente.PagoConfirmado = true;
+                        citaExistente.MontoAnticipo = anticipo;
+                        citaExistente.SaldoPendiente = saldo;
+                        _context.Citas.Update(citaExistente);
+                        await _context.SaveChangesAsync();
+                        citaProcesada = citaExistente;
+                    }
+                    else
+                    {
+                        citaProcesada = new CitasViewModel
+                        {
+                            Paciente = nombrePaciente,
+                            Especialidad = nombreEspecialidad,
+                            Medico = nombreMedico,
+                            FechaHora = fechaHoraFinal,
+                            PrecioTotal = total,
+                            MontoAnticipo = anticipo,
+                            SaldoPendiente = saldo,
+                            PagoConfirmado = true
+                        };
+                        _context.Citas.Add(citaProcesada);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    citaProcesada = new CitasViewModel
+                    {
+                        Paciente = nombrePaciente,
+                        Especialidad = nombreEspecialidad,
+                        Medico = nombreMedico,
+                        FechaHora = fechaHoraFinal,
+                        PrecioTotal = total,
+                        MontoAnticipo = anticipo,
+                        SaldoPendiente = saldo,
+                        PagoConfirmado = true
+                    };
+                    _context.Citas.Add(citaProcesada);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { exito = false, mensaje = "Error al guardar la cita en la base de datos: " + ex.Message });
+            }
+
+            // 3. Obtener correo de destino para el comprobante
+            string correoDestino = model.Correo?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(correoDestino))
+            {
+                try
+                {
+                    string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                    using var conn = new SqlConnection(connectionString);
+                    await conn.OpenAsync();
+
+                    string query = @"
+                        SELECT TOP 1 correo 
+                        FROM dbo.Usuarios 
+                        WHERE LOWER(RTRIM(CONCAT(nombres, ' ', apellidos))) = LOWER(@paciente)
+                           OR LOWER(nombres) = LOWER(@paciente)";
+
+                    using var cmd = new SqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@paciente", nombrePaciente.ToLower());
+                    var result = await cmd.ExecuteScalarAsync();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        correoDestino = result.ToString() ?? "";
+                    }
+                }
+                catch { }
+            }
+
+            if (string.IsNullOrWhiteSpace(correoDestino))
+            {
+                correoDestino = _configuration["EmailSettings:SenderEmail"] ?? "";
+            }
+
+            // 4. Integrar el Envío de Correo Electrónico con la plantilla de comprobante
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(correoDestino))
+                {
+                    await _emailService.SendComprobantePagoAsync(correoDestino, citaProcesada, model.TitularTarjeta);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[EmailService] No se pudo enviar el correo del comprobante: " + ex.Message);
+            }
+
+            // 5. Responder exitosamente al cliente
+            return Ok(new
+            {
+                exito = true,
+                mensaje = "¡Pago procesado con éxito y cita confirmada!",
+                idCita = citaProcesada.Id,
+                cita = new
+                {
+                    id = citaProcesada.Id,
+                    paciente = citaProcesada.Paciente,
+                    especialidad = citaProcesada.Especialidad,
+                    medico = citaProcesada.Medico,
+                    fechaHora = citaProcesada.FechaHora.ToString("dd/MM/yyyy hh:mm tt"),
+                    anticipo = citaProcesada.MontoAnticipo,
+                    saldoPendiente = citaProcesada.SaldoPendiente,
+                    correo = correoDestino
+                },
+                redirectUrl = "/Account/Citas"
+            });
+        }
+
         [HttpGet] public IActionResult Expedientes() => View("expedientes");
         [HttpGet] public IActionResult Consulta() => View();
         [HttpGet] public IActionResult Facturacion() => View("facturacion");
+
+        // POST: /Account/EnviarFacturaCorreo
+        [HttpPost]
+        public async Task<IActionResult> EnviarFacturaCorreo([FromBody] EnviarFacturaDto model)
+        {
+            if (model == null)
+            {
+                return BadRequest(new { success = false, message = "Datos inválidos o nulos." });
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Correo))
+            {
+                return BadRequest(new { success = false, message = "El correo electrónico es requerido." });
+            }
+
+            try
+            {
+                decimal montoTotal = ParsearDecimalSeguro(model.MontoTotal);
+                decimal costoTotal = ParsearDecimalSeguro(model.CostoTotal, montoTotal);
+                decimal anticipoPagado = ParsearDecimalSeguro(model.AnticipoPagado, 0m);
+                decimal montoRecibido = ParsearDecimalSeguro(model.MontoRecibido);
+                decimal cambio = ParsearDecimalSeguro(model.Cambio);
+
+                await _emailService.SendFacturaEmailAsync(
+                    model.Correo.Trim(),
+                    model.NumeroFactura ?? "",
+                    model.Paciente ?? "",
+                    model.Especialidad ?? "",
+                    montoTotal,
+                    model.MetodoPago ?? "Efectivo",
+                    montoRecibido,
+                    cambio,
+                    model.Codigo ?? "",
+                    costoTotal,
+                    anticipoPagado
+                );
+
+                return Ok(new { success = true, exito = true, message = $"Factura {model.NumeroFactura} enviada exitosamente a {model.Correo}." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, exito = false, message = "Error al enviar la factura por correo: " + ex.Message });
+            }
+        }
+
+        private static decimal ParsearDecimalSeguro(object? val, decimal valorDefecto = 0m)
+        {
+            if (val == null) return valorDefecto;
+            if (val is decimal d) return d;
+            if (val is double db) return (decimal)db;
+            if (val is int i) return i;
+            if (val is long l) return l;
+            if (val is System.Text.Json.JsonElement je)
+            {
+                if (je.ValueKind == System.Text.Json.JsonValueKind.Number && je.TryGetDecimal(out decimal num)) return num;
+                string sj = je.GetString() ?? "";
+                sj = sj.Replace("$", "").Replace(",", "").Trim();
+                if (decimal.TryParse(sj, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal resj)) return resj;
+            }
+            string s = val.ToString()?.Replace("$", "").Replace(",", "").Trim() ?? "";
+            if (decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal res)) return res;
+            return valorDefecto;
+        }
 
         private static string[] ObtenerModulosSegunRol(string rol)
         {
@@ -494,4 +783,38 @@ namespace ESFE.ClinicaWEB.Controllers
     public class SolicitudCorreoDto { public string Correo { get; set; } = string.Empty; }
     public class ValidarOtpDto { public string Correo { get; set; } = string.Empty; public string Codigo { get; set; } = string.Empty; }
     public class NuevaPasswordDto { public string Correo { get; set; } = string.Empty; public string TokenValidacion { get; set; } = string.Empty; public string NuevaContrasena { get; set; } = string.Empty; }
+
+    public class ConfirmarPagoDto
+    {
+        public int CitaId { get; set; }
+        public string Paciente { get; set; } = string.Empty;
+        public string Especialidad { get; set; } = string.Empty;
+        public string Medico { get; set; } = string.Empty;
+        public string Fecha { get; set; } = string.Empty;
+        public string Hora { get; set; } = string.Empty;
+        public string FechaHora { get; set; } = string.Empty;
+        public string? Correo { get; set; }
+        public decimal PrecioTotal { get; set; } = 50.00m;
+        public decimal MontoAnticipo { get; set; } = 12.50m;
+        public decimal SaldoPendiente { get; set; } = 37.50m;
+        public string TitularTarjeta { get; set; } = string.Empty;
+        public string NumeroTarjeta { get; set; } = string.Empty;
+        public string Expiracion { get; set; } = string.Empty;
+        public string Cvv { get; set; } = string.Empty;
+    }
+
+    public class EnviarFacturaDto
+    {
+        public string? Correo { get; set; }
+        public string? NumeroFactura { get; set; }
+        public string? Paciente { get; set; }
+        public string? Codigo { get; set; }
+        public string? Especialidad { get; set; }
+        public object? CostoTotal { get; set; }
+        public object? AnticipoPagado { get; set; }
+        public object? MontoTotal { get; set; }
+        public string? MetodoPago { get; set; } = "Efectivo";
+        public object? MontoRecibido { get; set; }
+        public object? Cambio { get; set; }
+    }
 }

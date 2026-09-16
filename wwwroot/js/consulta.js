@@ -1,19 +1,54 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
-    // Datos simulados de pacientes
-    const pacientesEnEspera = [
-        { id: "EXP-101", nombre: "María Josefina Flores", edad: 45, pa: "120/80", fc: "75", temp: "36.6", peso: "65" },
-        { id: "EXP-102", nombre: "Carlos Eduardo Ramos", edad: 58, pa: "135/85", fc: "82", temp: "37.0", peso: "82" },
-        { id: "EXP-103", nombre: "Ana Patricia Gómez", edad: 31, pa: "110/70", fc: "68", temp: "36.4", peso: "58" }
-    ];
+document.addEventListener("DOMContentLoaded", () => {
+    const COLA_KEY = "curavita_cola_espera";
+    const FACTURAS_KEY = "curavita_facturas_pendientes";
+    const EXPEDIENTES_KEY = "curavita_expedientes";
+    const RECETA_NUM_KEY = "curavita_ultimo_rec_num";
+
+    async function obtenerColaEspera() {
+        try {
+            const resp = await fetch("/api/ExpedientesApi");
+            if (!resp.ok) return [];
+            const expedientes = await resp.json();
+            
+            // Cola de espera son los expedientes con estado "En Espera"
+            const enEspera = expedientes.filter(e => e.estado === "En Espera");
+            
+            return enEspera.map(e => ({
+                id: e.id,
+                codigoExpediente: e.codigoExpediente,
+                nombre: e.nombreCompleto || `${e.nombres} ${e.apellidos}`,
+                especialidad: e.especialidad,
+                medico: e.medico,
+                costo: e.costo
+            }));
+        } catch {
+            return [];
+        }
+    }
+
+    // Ya no se usa localStorage para guardar cola
+    function guardarColaEspera(lista) {
+        // No-op
+    }
+
+    function obtenerSiguienteNumeroReceta() {
+        let ultimoNum = parseInt(localStorage.getItem(RECETA_NUM_KEY) || "29", 10);
+        if (isNaN(ultimoNum) || ultimoNum < 29) ultimoNum = 29;
+        const nuevoNum = ultimoNum + 1;
+        localStorage.setItem(RECETA_NUM_KEY, nuevoNum.toString());
+        return `REC-${String(nuevoNum).padStart(5, "0")}`;
+    }
 
     let pacienteSeleccionado = null;
+    let listaMedicamentosPrescritos = [];
+    let recetaGeneradaActual = null;
 
     // Referencias DOM
     const listaEspera = document.getElementById("listaEspera");
     const emptyWorkspace = document.getElementById("emptyWorkspace");
     const workspacePanel = document.getElementById("workspacePanel");
 
-    // Modal Aceptar
+    // Modal Aceptar Paciente
     const acceptPatientModal = document.getElementById("acceptPatientModal");
     const acceptPatientName = document.getElementById("acceptPatientName");
     const acceptPatientCode = document.getElementById("acceptPatientCode");
@@ -36,6 +71,17 @@
     const historyModalCode = document.getElementById("historyModalCode");
     const historyModalBody = document.getElementById("historyModalBody");
 
+    // Modal Receta Física
+    const modalRecetaFisica = document.getElementById("modalRecetaFisica");
+    const recetaFecha = document.getElementById("recetaFecha");
+    const recetaPaciente = document.getElementById("recetaPaciente");
+    const recetaExpediente = document.getElementById("recetaExpediente");
+    const recetaEspecialidad = document.getElementById("recetaEspecialidad");
+    const recetaListaMedicamentos = document.getElementById("recetaListaMedicamentos");
+    const recetaDiagTexto = document.getElementById("recetaDiagTexto");
+    const btnCerrarReceta = document.getElementById("btnCerrarReceta");
+    const btnPrintReceta = document.getElementById("btnPrintReceta");
+
     // Campos de Consulta
     const lblNombrePaciente = document.getElementById("lblNombrePaciente");
     const lblExpediente = document.getElementById("lblExpediente");
@@ -46,25 +92,38 @@
     const inputPeso = document.getElementById("inputPeso");
     const txtDiagnostico = document.getElementById("txtDiagnostico");
 
-    // Recetas
+    // Prescripción
     const inputMedicamentoNombre = document.getElementById("inputMedicamentoNombre");
     const inputMedicamentoDosis = document.getElementById("inputMedicamentoDosis");
     const btnAddMedicamento = document.getElementById("btnAddMedicamento");
     const tbodyReceta = document.getElementById("tbodyReceta");
     const btnFinalizarConsulta = document.getElementById("btnFinalizarConsulta");
 
-    // Render lista de espera
-    function renderListaEspera() {
+    // --- RENDERIZADO DE COLA DE ESPERA ---
+    async function renderListaEspera() {
         if (!listaEspera) return;
+        const cola = await obtenerColaEspera();
         listaEspera.innerHTML = "";
 
-        pacientesEnEspera.forEach((p) => {
+        if (cola.length === 0) {
+            const li = document.createElement("li");
+            li.style.padding = "20px";
+            li.style.color = "#94a3b8";
+            li.style.textAlign = "center";
+            li.style.fontSize = "13px";
+            li.textContent = "No hay pacientes en espera.";
+            listaEspera.appendChild(li);
+            return;
+        }
+
+        cola.forEach((p) => {
             const li = document.createElement("li");
             li.className = "queue-item";
             li.innerHTML = `
                 <div class="queue-item-info">
                     <span class="queue-item-name">${p.nombre}</span>
-                    <span class="queue-item-code">${p.id}</span>
+                    <span class="queue-item-code">${p.codigoExpediente || p.id}</span>
+                    <span class="queue-item-badge">${p.especialidad || "Medicina General"}</span>
                 </div>
             `;
             li.addEventListener("click", () => solicitarAceptarPaciente(p));
@@ -75,7 +134,7 @@
     function solicitarAceptarPaciente(p) {
         pacienteSeleccionado = p;
         if (acceptPatientName) acceptPatientName.textContent = p.nombre;
-        if (acceptPatientCode) acceptPatientCode.textContent = p.id;
+        if (acceptPatientCode) acceptPatientCode.textContent = p.codigoExpediente || p.id;
         if (acceptPatientModal) acceptPatientModal.classList.remove("hidden");
     }
 
@@ -92,6 +151,21 @@
         });
     }
 
+    function calcularEdad(fechaNacStr) {
+        if (typeof calcularEdadExacta === "function" && fechaNacStr) {
+            const res = calcularEdadExacta(fechaNacStr);
+            return res.valido ? res.etiqueta : "35 años";
+        }
+        if (!fechaNacStr) return "35 años";
+        const partes = fechaNacStr.split("-");
+        if (partes.length < 3) return "35 años";
+        const anio = parseInt(partes[0], 10);
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - anio;
+        if (isNaN(edad) || edad < 0) edad = 0;
+        return edad === 1 ? "1 año" : `${edad} años`;
+    }
+
     function cargarPacienteEnWorkspace(p) {
         if (!p) return;
         if (emptyWorkspace) emptyWorkspace.classList.add("hidden");
@@ -99,38 +173,94 @@
 
         if (lblNombrePaciente) lblNombrePaciente.textContent = p.nombre;
         if (lblExpediente) lblExpediente.textContent = p.id;
-        if (lblEdad) lblEdad.textContent = p.edad;
+        
+        let edadFinal = "35 años";
+        if (p.edadEtiqueta) {
+            edadFinal = p.edadEtiqueta;
+        } else if (p.fechaNacimiento) {
+            edadFinal = calcularEdad(p.fechaNacimiento);
+        } else if (p.edad !== undefined && p.edad !== null) {
+            const num = parseInt(p.edad, 10);
+            if (!isNaN(num) && num >= 0) {
+                edadFinal = num === 1 ? "1 año" : `${num} años`;
+            }
+        }
+        if (lblEdad) lblEdad.textContent = edadFinal;
 
-        if (inputPA) inputPA.value = p.pa || "";
-        if (inputFC) inputFC.value = p.fc || "";
-        if (inputTemp) inputTemp.value = p.temp || "";
-        if (inputPeso) inputPeso.value = p.peso || "";
+        // Limpiar errores visuales previos
+        [inputPA, inputFC, inputTemp, inputPeso, txtDiagnostico, inputMedicamentoNombre, inputMedicamentoDosis].forEach(inp => {
+            if (typeof limpiarError === "function") limpiarError(inp);
+        });
+
+        // Campos de signos vitales SIEMPRE vacíos: el médico los ingresa manualmente
+        if (inputPA) inputPA.value = "";
+        if (inputFC) inputFC.value = "";
+        if (inputTemp) inputTemp.value = "";
+        if (inputPeso) inputPeso.value = "";
         if (txtDiagnostico) txtDiagnostico.value = "";
-        if (tbodyReceta) tbodyReceta.innerHTML = "";
+
+        // Lista de medicamentos prescritos inicia vacía
+        listaMedicamentosPrescritos = [];
+        renderRecetaTable();
+
+        mostrarToast(`Expediente ${p.id} cargado en consulta clínica.`);
     }
 
-    // Prescripción
-    if (btnAddMedicamento && inputMedicamentoNombre && inputMedicamentoDosis && tbodyReceta) {
-        btnAddMedicamento.addEventListener("click", () => {
-            const nombre = inputMedicamentoNombre.value.trim();
-            const dosis = inputMedicamentoDosis.value.trim();
+    function renderRecetaTable() {
+        if (!tbodyReceta) return;
+        tbodyReceta.innerHTML = "";
 
-            if (!nombre || !dosis) {
-                alert("Por favor ingrese el nombre y la dosis del medicamento.");
-                return;
-            }
-
+        listaMedicamentosPrescritos.forEach((med, index) => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td><b>${nombre}</b></td>
-                <td>${dosis}</td>
+                <td><b>${med.nombre}</b></td>
+                <td>${med.dosis}</td>
                 <td class="text-center-col">
-                    <button class="btn-delete-row" type="button">✕</button>
+                    <button class="btn-delete-row" type="button" data-index="${index}">✕</button>
                 </td>
             `;
 
-            tr.querySelector(".btn-delete-row").addEventListener("click", () => tr.remove());
+            tr.querySelector(".btn-delete-row").addEventListener("click", () => {
+                listaMedicamentosPrescritos.splice(index, 1);
+                renderRecetaTable();
+            });
+
             tbodyReceta.appendChild(tr);
+        });
+    }
+
+    // --- AGREGAR MEDICAMENTO A LA RECETA CON VALIDACIÓN ---
+    if (btnAddMedicamento && inputMedicamentoNombre && inputMedicamentoDosis) {
+        btnAddMedicamento.addEventListener("click", () => {
+            if (typeof limpiarError === "function") {
+                limpiarError(inputMedicamentoNombre);
+                limpiarError(inputMedicamentoDosis);
+            }
+
+            const nombre = inputMedicamentoNombre.value.trim();
+            const dosis = inputMedicamentoDosis.value.trim();
+
+            let medError = false;
+            if (!nombre || nombre.length < 2) {
+                if (typeof marcarError === "function") {
+                    marcarError(inputMedicamentoNombre, "Ingrese el nombre del fármaco (mín. 2 letras).");
+                }
+                medError = true;
+            }
+            if (!dosis || dosis.length < 2) {
+                if (typeof marcarError === "function") {
+                    marcarError(inputMedicamentoDosis, "Ingrese la posología (ej: 1 tableta c/8h por 5 días).");
+                }
+                medError = true;
+            }
+
+            if (medError) {
+                mostrarToast("Por favor complete el nombre y la dosis del fármaco.", "error");
+                return;
+            }
+
+            listaMedicamentosPrescritos.push({ nombre, dosis });
+            renderRecetaTable();
 
             inputMedicamentoNombre.value = "";
             inputMedicamentoDosis.value = "";
@@ -138,37 +268,384 @@
         });
     }
 
+    // --- FINALIZAR E IMPRIMIR RECETA FÍSICA CON VALIDACIONES CLÍNICAS COMPLETAS ---
     if (btnFinalizarConsulta) {
-        btnFinalizarConsulta.addEventListener("click", () => {
-            alert("Consulta finalizada exitosamente. Imprimiendo receta...");
+        btnFinalizarConsulta.addEventListener("click", async () => {
+            if (!pacienteSeleccionado) return;
+
+            // Limpiar errores visuales anteriores
+            [inputPA, inputFC, inputTemp, inputPeso, txtDiagnostico].forEach(inp => {
+                if (typeof limpiarError === "function") limpiarError(inp);
+            });
+
+            // --- VALIDACIONES CLÍNICAS OBLIGATORIAS ---
+            const paValCheck = inputPA ? inputPA.value.trim() : "";
+            const fcValCheck = inputFC ? inputFC.value.trim() : "";
+            const tempValCheck = inputTemp ? inputTemp.value.trim() : "";
+            const pesoValCheck = inputPeso ? inputPeso.value.trim() : "";
+            const diagCheck = txtDiagnostico ? txtDiagnostico.value.trim() : "";
+
+            let primerCampoConError = null;
+
+            // 1. Presión Arterial
+            if (typeof validarPresionArterial === "function") {
+                const resPA = validarPresionArterial(paValCheck);
+                if (!resPA.valido) {
+                    marcarError(inputPA, resPA.mensaje);
+                    if (!primerCampoConError) primerCampoConError = inputPA;
+                }
+            } else if (!paValCheck) {
+                marcarError(inputPA, "La Presión Arterial es requerida (ej: 120/80).");
+                if (!primerCampoConError) primerCampoConError = inputPA;
+            }
+
+            // 2. Frecuencia Cardíaca
+            if (typeof validarFrecuenciaCardiaca === "function") {
+                const resFC = validarFrecuenciaCardiaca(fcValCheck);
+                if (!resFC.valido) {
+                    marcarError(inputFC, resFC.mensaje);
+                    if (!primerCampoConError) primerCampoConError = inputFC;
+                }
+            } else if (!fcValCheck) {
+                marcarError(inputFC, "La Frecuencia Cardíaca es requerida.");
+                if (!primerCampoConError) primerCampoConError = inputFC;
+            }
+
+            // 3. Temperatura
+            if (typeof validarTemperatura === "function") {
+                const resTemp = validarTemperatura(tempValCheck);
+                if (!resTemp.valido) {
+                    marcarError(inputTemp, resTemp.mensaje);
+                    if (!primerCampoConError) primerCampoConError = inputTemp;
+                }
+            } else if (!tempValCheck) {
+                marcarError(inputTemp, "La Temperatura es requerida.");
+                if (!primerCampoConError) primerCampoConError = inputTemp;
+            }
+
+            // 4. Peso
+            if (typeof validarPeso === "function") {
+                const resPeso = validarPeso(pesoValCheck);
+                if (!resPeso.valido) {
+                    marcarError(inputPeso, resPeso.mensaje);
+                    if (!primerCampoConError) primerCampoConError = inputPeso;
+                }
+            } else if (!pesoValCheck) {
+                marcarError(inputPeso, "El Peso es requerido.");
+                if (!primerCampoConError) primerCampoConError = inputPeso;
+            }
+
+            // 5. Diagnóstico Clínico
+            if (typeof validarDiagnostico === "function") {
+                const resDiag = validarDiagnostico(diagCheck);
+                if (!resDiag.valido) {
+                    marcarError(txtDiagnostico, resDiag.mensaje);
+                    if (!primerCampoConError) primerCampoConError = txtDiagnostico;
+                }
+            } else if (!diagCheck) {
+                marcarError(txtDiagnostico, "El Diagnóstico Clínico es requerido.");
+                if (!primerCampoConError) primerCampoConError = txtDiagnostico;
+            }
+
+            if (primerCampoConError) {
+                mostrarToast("⚠️ Por favor corrija los campos clínicos resaltados en rojo.", "error");
+                primerCampoConError.focus();
+                return;
+            }
+
+            // 6. Medicamentos prescritos
+            if (listaMedicamentosPrescritos.length === 0) {
+                if (typeof marcarError === "function") {
+                    marcarError(inputMedicamentoNombre, "Debe prescribir al menos un medicamento.");
+                }
+                mostrarToast("⚠️ Debes agregar al menos un medicamento a la prescripción.", "error");
+                if (inputMedicamentoNombre) inputMedicamentoNombre.focus();
+                return;
+            }
+
+            const diag = diagCheck;
+            const hoy = new Date();
+            const fechaHoy = hoy.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+            // 1. Obtener expediente desde la base de datos
+            try {
+                const resp = await fetch(`/api/ExpedientesApi/${pacienteSeleccionado.id}`);
+                if (resp.ok) {
+                    const expediente = await resp.json();
+                    
+                    // 2. Actualizar estado a "Facturado"
+                    expediente.estado = "Facturado";
+                    
+                    await fetch(`/api/ExpedientesApi/${pacienteSeleccionado.id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(expediente)
+                    });
+                }
+            } catch (err) {
+                console.error("Error al transferir a facturación en BD:", err);
+            }
+
+            // Generar número de receta correlativo oficial
+            const numeroReceta = obtenerSiguienteNumeroReceta();
+            const now = new Date();
+            const horas = now.getHours();
+            const ampm = horas >= 12 ? "p.m." : "a.m.";
+            const horas12 = horas % 12 || 12;
+            const minutos = String(now.getMinutes()).padStart(2, "0");
+            const fechaHoraStr = `${now.toLocaleDateString("es-ES")} ${String(horas12).padStart(2, "0")}:${minutos} ${ampm}`;
+
+            const paValor = inputPA ? inputPA.value.trim() : "";
+            const fcValor = inputFC ? inputFC.value.trim() : "";
+            const tempValor = inputTemp ? inputTemp.value.trim() : "";
+            const pesoValor = inputPeso ? inputPeso.value.trim() : "";
+
+            // Guardar receta generada para imprimir
+            recetaGeneradaActual = {
+                numeroReceta: numeroReceta,
+                fechaHora: fechaHoraStr,
+                paciente: pacienteSeleccionado.nombre,
+                codigo: pacienteSeleccionado.id,
+                especialidad: pacienteSeleccionado.especialidad || "Medicina General",
+                medico: pacienteSeleccionado.medico || "Dr(a). Médico Tratante",
+                pa: paValor || "120/70",
+                fc: fcValor || "80",
+                temp: tempValor || "36.5",
+                peso: pesoValor || "70",
+                diagnostico: diag || "Sin observaciones adicionales.",
+                medicamentos: [...listaMedicamentosPrescritos]
+            };
+
+            // 4. Cargar datos en el Modal de Receta Física
+            const recetaCodigoDoc = document.getElementById("recetaCodigoDoc");
+            if (recetaCodigoDoc) recetaCodigoDoc.textContent = numeroReceta;
+            if (recetaFecha) recetaFecha.textContent = `Fecha: ${fechaHoraStr}`;
+            if (recetaPaciente) recetaPaciente.textContent = pacienteSeleccionado.nombre;
+            if (recetaExpediente) recetaExpediente.textContent = pacienteSeleccionado.codigoExpediente || pacienteSeleccionado.id;
+            if (recetaEspecialidad) recetaEspecialidad.textContent = pacienteSeleccionado.especialidad || "Medicina General";
+
+            const recetaPA = document.getElementById("recetaPA");
+            const recetaFC = document.getElementById("recetaFC");
+            const recetaTemp = document.getElementById("recetaTemp");
+            const recetaPeso = document.getElementById("recetaPeso");
+            if (recetaPA) recetaPA.textContent = paValor || "--/--";
+            if (recetaFC) recetaFC.textContent = fcValor || "--";
+            if (recetaTemp) recetaTemp.textContent = tempValor || "--";
+            if (recetaPeso) recetaPeso.textContent = pesoValor || "--";
+
+            if (recetaDiagTexto) recetaDiagTexto.textContent = diag || "Sin observaciones adicionales.";
+
+            const recetaTbodyMedicamentos = document.getElementById("recetaTbodyMedicamentos");
+            if (recetaTbodyMedicamentos) {
+                recetaTbodyMedicamentos.innerHTML = "";
+                if (listaMedicamentosPrescritos.length === 0) {
+                    recetaTbodyMedicamentos.innerHTML = "<tr><td colspan='3' style='text-align: center; color: #64748b; padding: 12px;'>No se prescribieron medicamentos en esta consulta.</td></tr>";
+                } else {
+                    listaMedicamentosPrescritos.forEach((m, idx) => {
+                        const tr = document.createElement("tr");
+                        tr.style.borderBottom = "1px solid #f1f5f9";
+                        tr.innerHTML = `
+                            <td style="padding: 8px 10px; text-align: center; font-weight: 700; color: #0f766e;">${idx + 1}</td>
+                            <td style="padding: 8px 10px; font-weight: 700; color: #1e293b;">${m.nombre}</td>
+                            <td style="padding: 8px 10px; color: #475569;">${m.dosis}</td>
+                        `;
+                        recetaTbodyMedicamentos.appendChild(tr);
+                    });
+                }
+            }
+
+            const recetaMedicoFirma = document.getElementById("recetaMedicoFirma");
+            if (recetaMedicoFirma) recetaMedicoFirma.textContent = pacienteSeleccionado.medico || "Dr. Roberto Gómez";
+
+            // 5. Mostrar Modal de Receta
+            if (modalRecetaFisica) {
+                modalRecetaFisica.classList.remove("hidden");
+            }
+
+            // 6. Notificación Toast global
+            mostrarToast("Consulta médica finalizada con éxito. Expediente enviado al Módulo de Pago y Facturación.");
+
+            // Actualizar lista visual de cola
+            renderListaEspera();
+        });
+    }
+
+    // Modal Receta controles
+    if (btnCerrarReceta && modalRecetaFisica) {
+        btnCerrarReceta.addEventListener("click", () => {
+            modalRecetaFisica.classList.add("hidden");
             if (emptyWorkspace) emptyWorkspace.classList.remove("hidden");
             if (workspacePanel) workspacePanel.classList.add("hidden");
+            pacienteSeleccionado = null;
         });
     }
 
-    // Modal Logout
-    if (btnOpenLogout && logoutModal) {
-        btnOpenLogout.addEventListener("click", () => {
-            logoutModal.classList.remove("hidden");
-        });
-    }
+    if (btnPrintReceta) {
+        btnPrintReceta.addEventListener("click", () => {
+            if (!recetaGeneradaActual) {
+                window.print();
+                return;
+            }
 
-    if (btnCancelLogout && logoutModal) {
-        btnCancelLogout.addEventListener("click", () => {
-            logoutModal.classList.add("hidden");
-        });
-    }
+            const printWindow = window.open("", "_blank", "width=780,height=900");
+            if (!printWindow) {
+                window.print();
+                return;
+            }
 
-    if (logoutModal) {
-        logoutModal.addEventListener("click", (e) => {
-            if (e.target === logoutModal) logoutModal.classList.add("hidden");
-        });
-    }
+            const rowsMeds = recetaGeneradaActual.medicamentos.length > 0
+                ? recetaGeneradaActual.medicamentos.map((m, i) => `
+                    <tr>
+                        <td style="text-align:center;font-weight:700;color:#1e7a8e;">${i + 1}</td>
+                        <td style="font-weight:700;color:#1e7a8e;">${m.nombre}</td>
+                        <td style="color:#64748b;">${m.dosis}</td>
+                    </tr>`).join("")
+                : `<tr><td colspan="3" style="text-align:center;padding:16px;color:#94a3b8;font-style:italic;">No se prescribieron medicamentos en esta consulta.</td></tr>`;
 
-    // Emergency Overlay
-    if (btnCloseEmergency && emergencyOverlay) {
-        btnCloseEmergency.addEventListener("click", () => {
-            emergencyOverlay.classList.add("hidden");
+            const vitalesHtml = [
+                recetaGeneradaActual.pa   ? `P.A: <strong>${recetaGeneradaActual.pa}</strong>` : null,
+                recetaGeneradaActual.fc   ? `F.C: <strong>${recetaGeneradaActual.fc} lpm</strong>` : null,
+                recetaGeneradaActual.temp ? `Temp: <strong>${recetaGeneradaActual.temp} °C</strong>` : null,
+                recetaGeneradaActual.peso ? `Peso: <strong>${recetaGeneradaActual.peso} kg</strong>` : null
+            ].filter(Boolean).join(" &nbsp;&bull;&nbsp; ");
+
+            const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Receta Médica — ${recetaGeneradaActual.numeroReceta}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:#f8fafc; color:#334155; padding:36px 24px; font-size:13px; }
+  .sheet { max-width:700px; margin:0 auto; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px;
+           padding:34px 36px; box-shadow:none; }
+  .brand-row { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 12px; }
+  .brand-info { display:flex; gap:12px; align-items:center; }
+  .brand-name { font-size:21px; font-weight:800; color:#1a6f83; letter-spacing:-0.3px; }
+  .brand-sub  { font-size:10px; font-weight:700; color:#1e7a8e; letter-spacing:0.5px; margin-top:2px; text-transform: uppercase; }
+  .brand-addr { font-size:11px; color:#64748b; margin-top:1px; }
+  .doc-badge  { border:1px solid #1e7a8e; border-radius:8px; padding:10px 16px; text-align:center;
+                background:#f6fbfa; min-width:190px; flex-shrink:0; }
+  .doc-badge-label { font-size:10px; font-weight:800; color:#1e7a8e; letter-spacing:0.5px; text-transform:uppercase; }
+  .doc-badge-num   { font-size:18px; font-weight:800; color:#1a6f83; margin:3px 0; }
+  .doc-badge-date  { font-size:11px; color:#64748b; }
+  .divider { height:3px; background:#a2c6ce; border-radius:2px; margin:0 0 16px; }
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; 
+               background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; }
+  .label { font-size:10px; font-weight:700; color:#64748b; margin-bottom:3px; text-transform: uppercase; }
+  .value-lg { font-size:14px; font-weight:700; color:#334155; }
+  .value-md { font-size:13px; font-weight:700; color:#334155; }
+  .vitals-bar { background:#f6fbfa; border-left:4px solid #1e7a8e; border-radius:4px;
+                padding:12px 16px; font-size:13px; font-weight:600; color:#1a6f83; margin-bottom:20px; }
+  .vitals-bar strong { color: #1e7a8e; }
+  .section-title { font-size:11px; font-weight:800; color:#1e7a8e; letter-spacing:0.5px;
+                   text-transform:uppercase; margin-bottom:8px; }
+  .diag-box { border:1px solid #e2e8f0; border-radius:4px; padding:14px; background:#ffffff;
+              min-height:48px; font-size:13px; color:#334155; line-height:1.5; margin-bottom:24px; }
+  .med-table { width:100%; border-collapse:collapse; border:1px solid #e2e8f0;
+               border-radius:4px; overflow:hidden; font-size:13px; margin-bottom:24px; }
+  .med-table thead tr { background:#1e7a8e; color:#ffffff; text-align:left; }
+  .med-table th { padding:12px 14px; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+  .med-table th:first-child { width:50px; text-align:center; }
+  .med-table td { padding: 14px; border-bottom: 1px solid #f1f5f9; }
+  .footer-row { display:flex; justify-content:space-between; align-items:flex-end;
+                padding-top:20px; border-top:1px dashed #cbd5e1; gap:20px; margin-top: 20px; }
+  .notes-list { list-style:none; font-size:11px; color:#64748b; line-height:1.8; }
+  .sign-block { text-align:center; min-width:220px; }
+  .sign-line  { border-bottom:1px dashed #94a3b8; width:100%; margin:0 auto 8px; }
+  .sign-name  { font-size:13px; font-weight:800; color:#1e7a8e; }
+  .sign-sub   { font-size:11px; color:#64748b; margin-top: 2px; }
+  .doc-footer { display:flex; justify-content:space-between; font-size:10px; color:#94a3b8;
+                margin-top:24px; padding-top:16px; border-top:1px solid #e2e8f0; }
+  @media print {
+    body { padding:0; background:#fff; }
+    .sheet { border:none; box-shadow:none; padding:10px; border-radius:0; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <!-- Header -->
+  <div class="brand-row">
+    <div class="brand-info">
+      <img src="/images/logo.png" style="width:55px;height:auto;object-fit:contain;" />
+      <div>
+        <div class="brand-name">CLÍNICA CURAVITA</div>
+        <div class="brand-sub">ATENCIÓN MÉDICA INTEGRAL Y ESPECIALIZADA</div>
+        <div class="brand-addr">ESFE SYSCURAVITA &bull; PBX: (503) 2200-0000 &bull; San Salvador, El Salvador</div>
+      </div>
+    </div>
+    <div class="doc-badge">
+      <div class="doc-badge-label">Receta Médica</div>
+      <div class="doc-badge-num">${recetaGeneradaActual.numeroReceta}</div>
+      <div class="doc-badge-date">Fecha: ${recetaGeneradaActual.fechaHora}</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Datos del paciente -->
+  <div class="info-grid">
+    <div>
+      <div class="label">Paciente</div>
+      <div class="value-lg">${recetaGeneradaActual.paciente}</div>
+      <div class="label" style="margin-top:12px;">Especialidad / Motivo</div>
+      <div class="value-md">${recetaGeneradaActual.especialidad}</div>
+    </div>
+    <div>
+      <div class="label">N° de Expediente</div>
+      <div class="value-lg">${recetaGeneradaActual.codigo}</div>
+      <div class="label" style="margin-top:12px;">Modalidad de Atención</div>
+      <div class="value-md">Consulta Externa</div>
+    </div>
+  </div>
+
+  ${vitalesHtml ? `<div class="vitals-bar">${vitalesHtml}</div>` : ""}
+
+  <!-- Diagnóstico -->
+  <div class="section-title">Diagnóstico Clínico</div>
+  <div class="diag-box">${recetaGeneradaActual.diagnostico || "Sin observaciones adicionales."}</div>
+
+  <!-- Medicamentos -->
+  <div class="section-title">Prescripción Farmacológica</div>
+  <table class="med-table">
+    <thead>
+      <tr>
+        <th style="text-align:center;">#</th>
+        <th>Medicamento y Presentación</th>
+        <th>Posología / Indicaciones de Uso</th>
+      </tr>
+    </thead>
+    <tbody>${rowsMeds}</tbody>
+  </table>
+
+  <!-- Notas y Firma -->
+  <div class="footer-row">
+    <ul class="notes-list">
+      <li>&bull; Siga estrictamente la dosis y horarios prescritos.</li>
+      <li>&bull; No suspenda el tratamiento sin previa indicación médica.</li>
+      <li>&bull; En caso de reacciones adversas consulte a emergencias.</li>
+    </ul>
+    <div class="sign-block">
+      <div class="sign-line"></div>
+      <div class="sign-name">${recetaGeneradaActual.medico}</div>
+      <div class="sign-sub">Firma y Sello Profesional</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <span>ESFE SYSCURAVITA — Sistema Integral de Gestión Hospitalaria</span>
+    <span>Documento Médico Oficial &bull; Válido por 30 días</span>
+  </div>
+</div>
+<script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+            printWindow.document.write(html);
+            printWindow.document.close();
         });
     }
 
@@ -185,7 +662,7 @@
                     </div>
                     <div class="history-item">
                         <div class="history-item-date">10/11/2025 - Control de Rutina</div>
-                        <div class="history-item-desc">Signos vitales estables. Presión arterial dentro del rango normal.</div>
+                        <div class="history-item-desc">Signos vitales estables. Presión arterial dentro del rango normal. Sin complicaciones.</div>
                     </div>
                 `;
             }
@@ -199,11 +676,52 @@
         });
     }
 
-    if (historyModal) {
-        historyModal.addEventListener("click", (e) => {
-            if (e.target === historyModal) historyModal.classList.add("hidden");
-        });
+    // Modal Logout
+    if (btnOpenLogout && logoutModal) {
+        btnOpenLogout.addEventListener("click", () => logoutModal.classList.remove("hidden"));
     }
+    if (btnCancelLogout && logoutModal) {
+        btnCancelLogout.addEventListener("click", () => logoutModal.classList.add("hidden"));
+    }
+
+    // Emergency Overlay
+    if (btnCloseEmergency && emergencyOverlay) {
+        btnCloseEmergency.addEventListener("click", () => emergencyOverlay.classList.add("hidden"));
+    }
+
+    // Helper Toast
+    function mostrarToast(mensaje, tipo = "success") {
+        let container = document.getElementById("toastContainer");
+        if (!container) {
+            container = document.createElement("div");
+            container.id = "toastContainer";
+            container.className = "toast-container";
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement("div");
+        toast.className = "toast-item";
+        toast.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>${mensaje}</span>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add("toast-fadeout");
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // Enlazar limpieza automática de errores visuales al escribir
+    [inputPA, inputFC, inputTemp, inputPeso, txtDiagnostico, inputMedicamentoNombre, inputMedicamentoDosis].forEach(inp => {
+        if (inp && typeof enlazarLimpiezaEnInput === "function") {
+            enlazarLimpiezaEnInput(inp);
+        }
+    });
 
     // Inicializar
     renderListaEspera();

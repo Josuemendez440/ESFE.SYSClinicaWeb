@@ -40,7 +40,7 @@
                         <span>Gestión de Expedientes</span>
                     </a>
                     <a href="@Url.Action("Consulta", "Account")" class="nav-item @(currentAction.Equals("Consulta", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Consulta">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2h-.2ZM17 21a2 2 0 0 0 4-4v-3h-4v7ZM3 10h4V3H3v7ZM12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5Z" /></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
                         <span>Consulta Médica</span>
                     </a>
                     <a href="@Url.Action("Facturacion", "Account")" class="nav-item @(currentAction.Equals("Facturacion", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Facturacion">
@@ -178,6 +178,7 @@
     </div>
 
     <!-- Scripts necesarios -->
+    <script src="~/js/validaciones.js" asp-append-version="true"></script>
     <script src="~/js/agendar.js" asp-append-version="true"></script>
     <script src="~/js/permisos.js" asp-append-version="true"></script>
     <script src="~/js/inicio.js" asp-append-version="true"></script>

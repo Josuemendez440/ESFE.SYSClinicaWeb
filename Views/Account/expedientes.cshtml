@@ -40,7 +40,7 @@
                         <span>Gestión de Expedientes</span>
                     </a>
                     <a href="@Url.Action("Consulta", "Account")" class="nav-item @(currentAction.Equals("Consulta", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Consulta">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2h-.2ZM17 21a2 2 0 0 0 4-4v-3h-4v7ZM3 10h4V3H3v7ZM12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5Z" /></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
                         <span>Consulta Médica</span>
                     </a>
                     <a href="@Url.Action("Facturacion", "Account")" class="nav-item @(currentAction.Equals("Facturacion", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Facturacion">
@@ -120,6 +120,7 @@
                                     <th>CÓDIGO</th>
                                     <th>NOMBRE DEL PACIENTE</th>
                                     <th>DOCUMENTO (DUI)</th>
+                                    <th>ESTADO</th>
                                     <th class="text-right">ACCIÓN</th>
                                 </tr>
                             </thead>
@@ -133,6 +134,89 @@
             </div>
         </main>
     </div>
+
+    <!-- Modal Operación Exitosa -->
+    <div id="modalOperacionExitosa" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-icon icon-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h3 class="modal-title">¡Operación Exitosa!</h3>
+            <p class="modal-message" id="msgOperacionExitosa">Expediente guardado correctamente.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn-primary-action" id="btnAceptarOperacion">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Asignar Especialidad y Cita -->
+    <div id="modalAsignarCita" class="modal-overlay hidden">
+        <div class="modal-box modal-wide">
+            <div class="modal-icon icon-specialty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+            </div>
+            <h3 class="modal-title">Asignar Especialidad y Cita</h3>
+            <p class="modal-message">
+                Paciente: <strong id="modalAsignarPaciente">---</strong> (<span id="modalAsignarCodigo">---</span>)
+            </p>
+
+            <div class="modal-form-content">
+                <div class="form-group text-left">
+                    <label for="selectEspecialidad">ESPECIALIDAD MÉDICA</label>
+                    <select id="selectEspecialidad" class="modal-select">
+                        <option value="Medicina General" data-costo="25.00" selected>Medicina General ($25.00)</option>
+                        <option value="Pediatría" data-costo="35.00">Pediatría ($35.00)</option>
+                        <option value="Cardiología" data-costo="50.00">Cardiología ($50.00)</option>
+                    </select>
+                </div>
+
+                <div class="form-group text-left">
+                    <label>MONTO CONSULTA</label>
+                    <div id="displayMontoConsulta" class="display-costo">$25.00</div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="btnCancelarAsignacion">Cancelar</button>
+                <button type="button" class="btn-primary-action" id="btnConfirmarAsignacion">Confirmar Cita</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalle de Cita Asignada -->
+    <div id="modalDetalleCita" class="modal-overlay hidden">
+        <div class="modal-box modal-wide">
+            <div class="modal-icon" style="background-color: #fef3c7; color: #d97706;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <h3 class="modal-title">Cita Médica Asignada</h3>
+            <p class="modal-message">
+                Paciente: <strong id="detalleCitaPaciente">---</strong> (<span id="detalleCitaCodigo">---</span>)
+            </p>
+
+            <div class="modal-form-content" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 16px 0; text-align: left; font-size: 14px; line-height: 2;">
+                <div><strong>Especialidad:</strong> <span id="detalleCitaEspecialidad">Medicina General</span></div>
+                <div><strong>Médico Asignado:</strong> <span id="detalleCitaMedico">Dr. Roberto Gómez</span></div>
+                <div><strong>Fecha y Hora:</strong> <span id="detalleCitaFechaHora">---</span></div>
+                <div><strong>Costo Consulta:</strong> <span id="detalleCitaCosto">$25.00</span></div>
+                <div><strong>Estado Actual:</strong> <span class="badge-status badge-espera">En Espera (Cola de Consulta)</span></div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="btnCerrarDetalleCita" style="width: 100%;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor Global de Notificaciones (Toast) -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <!-- Modal Confirmar Cerrar Sesión (Misma estructura de Inicio) -->
     <div id="logoutModal" class="modal-overlay hidden">
@@ -155,5 +239,7 @@
 
     <script src="~/js/permisos.js" asp-append-version="true"></script>
     <script src="~/js/inicio.js" asp-append-version="true"></script>
+    <script src="~/js/validaciones.js" asp-append-version="true"></script>
+    <script src="~/js/expedientes.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ESFE.ClinicaWEB.Models;
 
 namespace ESFE.ClinicaWEB.Services // Cambia por .Data si la creaste dentro de Data
@@ -12,5 +12,7 @@ namespace ESFE.ClinicaWEB.Services // Cambia por .Data si la creaste dentro de D
 
         // Aquí se registra la tabla de Citas
         public DbSet<CitasViewModel> Citas { get; set; }
+
+        public DbSet<ExpedienteViewModel> Expedientes { get; set; }
     }
 }

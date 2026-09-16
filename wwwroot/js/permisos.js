@@ -151,7 +151,7 @@ function configurarLogoutGlobal() {
     const btnOpenLogout = document.getElementById('btnOpenLogout');
     const logoutModal = document.getElementById('logoutModal');
     const btnCancelLogout = document.getElementById('btnCancelLogout');
-    const confirmButtons = document.querySelectorAll('.btn-confirm-logout, .btn-modal-confirm, .btn-logout-confirm');
+    const confirmLogoutBtn = document.querySelector('#logoutModal .btn-logout-confirm, #logoutModal a[href*="Login"]');
 
     if (btnOpenLogout && logoutModal) {
         btnOpenLogout.addEventListener('click', (e) => {
@@ -166,12 +166,10 @@ function configurarLogoutGlobal() {
         });
     }
 
-    confirmButtons.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
+    if (confirmLogoutBtn) {
+        confirmLogoutBtn.addEventListener('click', () => {
             sessionStorage.clear();
             localStorage.clear();
-            window.location.href = '/Account/Login';
         });
-    });
+    }
 }

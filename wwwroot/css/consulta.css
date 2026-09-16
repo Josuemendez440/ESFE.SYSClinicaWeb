@@ -1,8 +1,27 @@
-﻿* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+*,
+*::before,
+*::after,
+body,
+button,
+input,
+select,
+textarea,
+table,
+th,
+td {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+html {
+    font-size: 14.5px;
+    zoom: 0.88;
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (min-width: 1600px) {
+    html {
+        zoom: 0.95;
+    }
 }
 
 :root {
@@ -33,113 +52,157 @@ body {
     min-height: 100vh;
 }
 
-/* Sidebar */
+/* Sidebar Unificado y Elegante */
 .sidebar {
-    width: 260px;
+    width: 250px;
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 24px 16px;
+    padding: 18px 12px;
     position: fixed;
     top: 0;
     bottom: 0;
     left: 0;
     z-index: 100;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
 }
 
-.sidebar-brand {
+.brand, .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 32px;
-    padding: 0 12px;
-    font-size: 22px;
+    gap: 10px;
+    padding: 4px 10px;
+    margin-bottom: 20px;
+    font-size: 20px;
     font-weight: 800;
     color: #ffffff;
+    letter-spacing: -0.3px;
 }
 
-    .sidebar-brand svg {
-        width: 24px;
-        height: 24px;
-        color: #22c55e;
-    }
+.brand svg, .sidebar-brand svg {
+    width: 24px;
+    height: 24px;
+    color: #22c55e;
+    stroke: #22c55e;
+    flex-shrink: 0;
+}
 
-.sidebar-menu {
+.nav-menu, .sidebar-menu {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
 }
 
-.menu-item a {
+.nav-item, .menu-item a {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 9px 12px;
+    height: 38px;
     color: #94a3b8;
     text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 13.5px;
     border-radius: 8px;
     transition: all 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.menu-item svg {
-    width: 20px;
-    height: 20px;
+.nav-item svg, .menu-item a svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    flex-shrink: 0;
 }
 
-.menu-item a:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #f1f5f9;
+.nav-item span, .menu-item a span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.menu-item.active a {
+.nav-item:hover, .menu-item a:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #f8fafc;
+}
+
+.nav-item.active, .menu-item.active a {
     background-color: #134e5e;
     color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(19, 78, 94, 0.35);
+}
+
+.nav-item.active svg, .menu-item.active a svg {
+    stroke: #38bdf8;
+}
+
+.btn-accept-action {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-accept-action:hover {
+    background-color: var(--primary-dark);
 }
 
 .sidebar-footer {
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .btn-logout {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 9px 12px;
+    height: 38px;
     background: transparent;
     border: none;
     border-radius: 8px;
     color: #94a3b8;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 13.5px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-    .btn-logout:hover {
-        background-color: rgba(225, 29, 72, 0.1);
-        color: #f43f5e;
-    }
+.btn-logout:hover {
+    background-color: rgba(225, 29, 72, 0.12);
+    color: #f43f5e;
+}
 
-    .btn-logout svg {
-        width: 20px;
-        height: 20px;
-    }
+.btn-logout svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
 
 /* Main Content Structure */
 .main-content {
     flex: 1;
-    margin-left: 260px;
-    padding: 32px 40px;
+    margin-left: 250px;
+    padding: 20px 28px;
     display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 28px;
+    grid-template-columns: 290px 1fr;
+    gap: 20px;
     align-items: start;
+    max-width: calc(100vw - 250px);
 }
 
 /* Panel Pacientes en Espera */
@@ -182,11 +245,12 @@ body {
     transition: all 0.2s ease;
 }
 
-    .queue-item:hover, .queue-item.active {
-        background-color: var(--primary-light);
-        border-color: #134e5e;
-        font-weight: 700;
-    }
+.queue-item:hover,
+.queue-item.active {
+    background-color: var(--primary-light);
+    border-color: #134e5e;
+    font-weight: 700;
+}
 
 .queue-item-info {
     display: flex;
@@ -238,10 +302,10 @@ body {
     margin-bottom: 20px;
 }
 
-    .no-selection-icon svg {
-        width: 32px;
-        height: 32px;
-    }
+.no-selection-icon svg {
+    width: 32px;
+    height: 32px;
+}
 
 .no-selection-card h2 {
     font-size: 22px;
@@ -273,11 +337,11 @@ body {
     margin-bottom: 20px;
 }
 
-    .patient-card-header h2 {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-main);
-    }
+.patient-card-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-main);
+}
 
 .patient-meta {
     color: var(--text-muted);
@@ -285,33 +349,36 @@ body {
     margin-top: 4px;
 }
 
-    .patient-meta b {
-        color: var(--text-main);
-    }
+.patient-meta b {
+    color: var(--text-main);
+}
 
 .btn-history {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #f1f5f9;
-    color: var(--primary);
-    border: 1px solid var(--border);
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-weight: 600;
+    background: #ffffff;
+    color: #134e5e;
+    border: 1.5px solid #134e5e;
+    padding: 9px 18px;
+    border-radius: 9px;
+    font-weight: 700;
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-    .btn-history:hover {
-        background: #e2e8f0;
-    }
+.btn-history:hover {
+    background: #f0fdfa;
+    border-color: #0d9488;
+    color: #0d9488;
+}
 
-    .btn-history svg {
-        width: 16px;
-        height: 16px;
-    }
+.btn-history svg {
+    width: 16px;
+    height: 16px;
+}
 
 /* Signos Vitales */
 .vitals-grid {
@@ -321,52 +388,105 @@ body {
 }
 
 .vital-box {
-    background: #f8fafc;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
+    background: #e9f2f5;
+    border: 1px solid #d2e3eb;
+    border-radius: 12px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-    .vital-box span {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-muted);
-    }
+.vital-box:hover {
+    background: #e2eff3;
+    border-color: #b7d5e1;
+}
+
+.vital-box span {
+    font-size: 11px;
+    font-weight: 800;
+    color: #134e5e;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
 
 .vital-input-wrapper {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
-    .vital-input-wrapper small {
-        font-weight: 600;
-        color: var(--text-muted);
-    }
+.vital-input-wrapper .form-control {
+    width: 80px;
+    padding: 7px 10px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.vital-input-wrapper .form-control:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18);
+    background: #ffffff;
+}
+
+.vital-input-wrapper small {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+}
 
 /* Controles de Formulario */
 .form-control {
     width: 100%;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    padding: 11px 15px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 9px;
     font-size: 14px;
     outline: none;
-    background: #f8fafc;
-    transition: all 0.2s;
+    background: #ffffff;
+    color: #0f172a;
+    transition: all 0.2s ease;
 }
 
-    .form-control:focus {
-        border-color: var(--primary);
-        background: #ffffff;
-    }
+.form-control:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+    background: #ffffff;
+}
 
 textarea.form-control {
     resize: vertical;
     font-family: inherit;
+    line-height: 1.5;
+}
+
+/* Estados de Error y Validación */
+.input-is-invalid,
+.form-control.input-is-invalid {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+    background-color: #fffafb !important;
+}
+
+.input-is-valid {
+    border-color: #10b981 !important;
+}
+
+.val-error-feedback {
+    color: #dc2626;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 5px;
+    display: block;
+    line-height: 1.3;
 }
 
 /* Prescripción */
@@ -385,20 +505,32 @@ textarea.form-control {
 }
 
 .btn-action-add {
-    padding: 0 20px;
+    padding: 0 24px;
     white-space: nowrap;
-    background: var(--primary);
-    color: white;
+    background: #134e5e;
+    color: #ffffff;
     border: none;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 9px;
+    font-weight: 700;
+    font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(19, 78, 94, 0.2);
 }
 
-    .btn-action-add:hover {
-        background: var(--primary-dark);
-    }
+.btn-action-add:hover {
+    background: #0d3844;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(19, 78, 94, 0.28);
+}
+
+.btn-action-add:active {
+    transform: translateY(0);
+}
 
 .recipe-table {
     width: 100%;
@@ -406,22 +538,22 @@ textarea.form-control {
     margin-bottom: 20px;
 }
 
-    .recipe-table th {
-        background: #f8fafc;
-        text-align: left;
-        padding: 12px 16px;
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--text-muted);
-        border-bottom: 1px solid var(--border);
-        text-transform: uppercase;
-    }
+.recipe-table th {
+    background: #f8fafc;
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+}
 
-    .recipe-table td {
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--border);
-        font-size: 14px;
-    }
+.recipe-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+}
 
 .text-center-col {
     text-align: center;
@@ -438,9 +570,9 @@ textarea.form-control {
     border-radius: 4px;
 }
 
-    .btn-delete-row:hover {
-        background-color: #fef2f2;
-    }
+.btn-delete-row:hover {
+    background-color: #fef2f2;
+}
 
 .btn-print {
     width: 100%;
@@ -455,12 +587,13 @@ textarea.form-control {
     transition: background 0.2s;
 }
 
-    .btn-print:hover {
-        background: var(--primary-dark);
-    }
+.btn-print:hover {
+    background: var(--primary-dark);
+}
 
 /* Modales & Overlays */
-.modal-overlay, .emergency-overlay {
+.modal-overlay,
+.emergency-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -498,19 +631,19 @@ textarea.form-control {
     margin-bottom: 16px;
 }
 
-    .modal-icon svg {
-        width: 28px;
-        height: 28px;
-        stroke: #ef4444;
-    }
+.modal-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: #ef4444;
+}
 
-    .modal-icon.icon-primary {
-        background-color: var(--primary-light);
-    }
+.modal-icon.icon-primary {
+    background-color: var(--primary-light);
+}
 
-        .modal-icon.icon-primary svg {
-            stroke: var(--primary);
-        }
+.modal-icon.icon-primary svg {
+    stroke: var(--primary);
+}
 
 .modal-title {
     font-size: 20px;
@@ -562,13 +695,13 @@ textarea.form-control {
     cursor: pointer;
 }
 
-    .btn-modal-confirm.btn-primary-bg {
-        background-color: var(--primary);
-    }
+.btn-modal-confirm.btn-primary-bg {
+    background-color: var(--primary);
+}
 
-        .btn-modal-confirm.btn-primary-bg:hover {
-            background-color: var(--primary-dark);
-        }
+.btn-modal-confirm.btn-primary-bg:hover {
+    background-color: var(--primary-dark);
+}
 
 /* Emergency Popup */
 .emergency-popup {
@@ -582,26 +715,26 @@ textarea.form-control {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
 }
 
-    .emergency-popup svg {
-        width: 48px;
-        height: 48px;
-        stroke: var(--danger);
-        margin-bottom: 12px;
-    }
+.emergency-popup svg {
+    width: 48px;
+    height: 48px;
+    stroke: var(--danger);
+    margin-bottom: 12px;
+}
 
-    .emergency-popup h2 {
-        color: var(--danger);
-        font-size: 20px;
-        font-weight: 800;
-        margin-bottom: 12px;
-    }
+.emergency-popup h2 {
+    color: var(--danger);
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
 
-    .emergency-popup p {
-        font-size: 14px;
-        color: var(--text-main);
-        line-height: 1.6;
-        margin-bottom: 24px;
-    }
+.emergency-popup p {
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
 
 .btn-close-emergency {
     width: 100%;
@@ -692,5 +825,228 @@ textarea.form-control {
 
     .vitals-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Badge de Especialidad en Cola */
+.queue-item-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 4px;
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+/* Modal de Receta Física */
+.modal-receta-card {
+    max-width: 540px !important;
+    text-align: left !important;
+    background-color: #ffffff;
+    border-radius: 16px;
+    padding: 28px !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.receta-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #0d9488;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+}
+
+.receta-title-box h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: #0f766e;
+    margin: 0;
+}
+
+.receta-title-box p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+    text-align: right;
+}
+
+.receta-patient-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    background-color: #f8fafc;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+}
+
+.receta-patient-info span {
+    color: #64748b;
+}
+
+.receta-patient-info strong {
+    color: #1e293b;
+}
+
+.receta-body h4 {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f766e;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.receta-med-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.receta-med-item {
+    background-color: #ffffff;
+    border-left: 3px solid #0d9488;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background-color: #f0fdfa;
+    font-size: 13px;
+}
+
+.receta-med-item strong {
+    color: #134e4a;
+    display: block;
+}
+
+.receta-med-item span {
+    color: #475569;
+    font-size: 12px;
+}
+
+.receta-diagnostico-box {
+    background-color: #fffbeb;
+    border: 1px solid #fef3c7;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-bottom: 20px;
+}
+
+.receta-diagnostico-box label {
+    font-weight: 700;
+    color: #92400e;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.receta-diagnostico-box p {
+    color: #78350f;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.receta-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+    margin-bottom: 20px;
+}
+
+.firma-linea {
+    text-align: center;
+    width: 180px;
+}
+
+.firma-linea .linea {
+    border-top: 1px solid #94a3b8;
+    margin-bottom: 4px;
+}
+
+.firma-linea p {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Toast Container */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast-item {
+    pointer-events: auto;
+    background: #ffffff;
+    border-left: 4px solid #10b981;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 280px;
+    max-width: 380px;
+    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-item.toast-fadeout {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.toast-item svg {
+    width: 20px;
+    height: 20px;
+    color: #10b981;
+    flex-shrink: 0;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #modalRecetaFisica,
+    #modalRecetaFisica * {
+        visibility: visible;
+    }
+
+    #modalRecetaFisica {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+    }
+
+    .no-print {
+        display: none !important;
     }
 }

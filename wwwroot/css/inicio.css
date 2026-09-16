@@ -1,11 +1,20 @@
-﻿/* ==========================================
-   1. RESET Y ESTILOS BASE
+/* ==========================================
+   1. RESET, ZOOM Y ESTILOS BASE
    ========================================== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
+*, *::before, *::after, body, button, input, select, textarea, table, th, td {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+html {
+    font-size: 14.5px;
+    zoom: 0.88;
+    -webkit-text-size-adjust: 100%;
+}
+
+@media (min-width: 1600px) {
+    html {
+        zoom: 0.95;
+    }
 }
 
 body {
@@ -19,146 +28,173 @@ body {
 }
 
 /* ==========================================
-   2. SIDEBAR (MENÚ LATERAL OSCURO)
+   2. SIDEBAR (MENÚ LATERAL UNIFICADO Y ELEGANTE)
    ========================================== */
 .sidebar {
-    width: 260px;
+    width: 250px;
     background-color: #0b1d28; /* Azul muy oscuro / Petróleo */
     display: flex;
     flex-direction: column;
-    padding: 24px 16px;
+    justify-content: space-between;
+    padding: 18px 12px;
     position: fixed;
     top: 0;
     bottom: 0;
     left: 0;
-    z-index: 10;
+    z-index: 100;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
 }
 
-.sidebar-brand {
+.brand, .sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 22px;
+    gap: 10px;
+    padding: 4px 10px;
+    margin-bottom: 20px;
+    font-size: 20px;
     font-weight: 800;
     color: #ffffff;
-    margin-bottom: 32px;
-    padding: 0 12px;
+    letter-spacing: -0.3px;
 }
 
-    .sidebar-brand svg {
-        width: 26px;
-        height: 26px;
-        stroke: #22c55e; /* Verde lima brillante del logo */
-    }
+.brand svg, .sidebar-brand svg {
+    width: 24px;
+    height: 24px;
+    stroke: #22c55e;
+    color: #22c55e;
+    flex-shrink: 0;
+}
 
-.sidebar-menu {
+.nav-menu, .sidebar-menu {
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     flex: 1;
+    margin: 0;
+    padding: 0;
 }
 
-.menu-item a {
+.nav-item, .menu-item a {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    color: #94a3b8; /* Texto claro inactivo */
+    gap: 10px;
+    padding: 9px 12px;
+    height: 38px;
+    color: #94a3b8;
     text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 13.5px;
     border-radius: 8px;
     transition: all 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-    .menu-item a svg {
-        width: 20px;
-        height: 20px;
-        stroke: currentColor;
-    }
+.nav-item svg, .menu-item a svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
 
-.menu-item.active a {
-    background-color: #134e5e; /* Azul turquesa activo */
+.nav-item span, .menu-item a span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nav-item:hover, .menu-item a:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: #f8fafc;
+}
+
+.nav-item.active, .menu-item.active a {
+    background-color: #134e5e;
     color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(19, 78, 94, 0.35);
 }
 
-.menu-item a:hover:not(.active) {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #f1f5f9;
+.nav-item.active svg, .menu-item.active a svg {
+    stroke: #38bdf8;
 }
 
 .sidebar-footer {
-    padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .btn-logout {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 9px 12px;
+    height: 38px;
     background: transparent;
     border: none;
     border-radius: 8px;
     color: #94a3b8;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 500;
+    font-size: 13.5px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-    .btn-logout:hover {
-        background-color: rgba(225, 29, 72, 0.1);
-        color: #f43f5e;
-    }
+.btn-logout:hover {
+    background-color: rgba(225, 29, 72, 0.12);
+    color: #f43f5e;
+}
 
-    .btn-logout svg {
-        width: 20px;
-        height: 20px;
-        stroke: currentColor;
-    }
+.btn-logout svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
 
 /* ==========================================
    3. CONTENIDO PRINCIPAL Y HEADER
    ========================================== */
 .main-content {
     flex: 1;
-    margin-left: 260px;
-    padding: 32px 48px;
+    margin-left: 250px;
+    padding: 22px 32px;
+    max-width: calc(100vw - 250px);
 }
 
 .top-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
 }
 
-    .top-header h1 {
-        font-size: 26px;
-        font-weight: 800;
-        color: #0b1d28;
-    }
+.top-header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0b1d28;
+}
 
 .user-dropdown {
     display: flex;
     align-items: center;
     gap: 8px;
     background-color: #e2e8f0;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 20px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
     color: #0b1d28;
 }
 
-    .user-dropdown svg {
-        width: 18px;
-        height: 18px;
-        stroke: #0b1d28;
-    }
+.user-dropdown svg {
+    width: 16px;
+    height: 16px;
+    stroke: #0b1d28;
+}
 
 /* ==========================================
    4. TARJETA DE BIENVENIDA Y RETÍCULA
@@ -166,48 +202,48 @@ body {
 .dashboard-body {
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 18px;
 }
 
 .welcome-card {
     background-color: #ffffff;
-    border-radius: 16px;
-    padding: 40px;
+    border-radius: 14px;
+    padding: 24px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 12px;
+    gap: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
 }
 
 .profile-avatar-icon {
-    width: 72px;
-    height: 72px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background-color: #e0f2fe;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
-    .profile-avatar-icon svg {
-        width: 32px;
-        height: 32px;
-        stroke: #0e7490;
-    }
+.profile-avatar-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: #0e7490;
+}
 
 .welcome-title {
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 800;
     color: #0b1d28;
 }
 
 .welcome-subtitle {
     color: #64748b;
-    font-size: 15px;
-    margin-bottom: 12px;
+    font-size: 14px;
+    margin-bottom: 6px;
 }
 
 .btn-agendar {
@@ -216,11 +252,11 @@ body {
     gap: 8px;
     background-color: #134e5e; /* Azul turquesa botón principal */
     color: #ffffff;
-    padding: 12px 24px;
+    padding: 10px 20px;
     border-radius: 8px;
     text-decoration: none;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13.5px;
     transition: background-color 0.2s ease;
 }
 

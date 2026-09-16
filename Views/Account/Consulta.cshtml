@@ -44,7 +44,7 @@
             </p>
             <div class="modal-actions">
                 <button type="button" class="btn-modal-cancel" id="btnCancelAccept">Cancelar</button>
-                <button type="button" class="btn-modal-confirm btn-primary-bg" id="btnConfirmAccept">Aceptar Paciente</button>
+                <button type="button" class="btn-accept-action btn-primary-bg" id="btnConfirmAccept">Aceptar Paciente</button>
             </div>
         </div>
     </div>
@@ -63,7 +63,7 @@
             <p class="modal-desc">¿Estás seguro de que deseas salir del sistema <strong>Curavita</strong>?</p>
             <div class="modal-actions">
                 <button type="button" class="btn-modal-cancel" id="btnCancelLogout">Cancelar</button>
-                <a href="@Url.Action("Login", "Account")" class="btn-modal-confirm btn-logout-confirm">Sí, Cerrar Sesión</a>
+                <a href="@Url.Action("Login", "Account")" class="btn-modal-confirm btn-logout-confirm" id="btnConfirmLogout">Sí, Cerrar Sesión</a>
             </div>
         </div>
     </div>
@@ -86,51 +86,39 @@
     </div>
 
     <div class="app-container">
-        <!-- Menú Lateral (Sidebar) -->
+        <!-- Menú Lateral (Sidebar) con estructura unificada -->
         <aside class="sidebar">
             <div>
-                <div class="sidebar-brand">
+                <div class="brand">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
                     <span>Curavita</span>
                 </div>
-                <ul class="sidebar-menu">
-                    <li class="menu-item @(currentAction.Equals("Inicio", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Inicio">
-                        <a href="@Url.Action("Inicio", "Account")">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                            <span>Inicio</span>
-                        </a>
-                    </li>
-                    <li class="menu-item @(currentAction.Equals("Citas", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Citas">
-                        <a href="@Url.Action("Citas", "Account")">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            <span>Mis Citas</span>
-                        </a>
-                    </li>
-                    <li class="menu-item @(currentAction.Equals("Agendar", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Agendar">
-                        <a href="@Url.Action("Agendar", "Account")">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            <span>Agendar Cita</span>
-                        </a>
-                    </li>
-                    <li class="menu-item @(currentAction.Equals("Expedientes", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Expedientes">
-                        <a href="@Url.Action("Expedientes", "Account")">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                            <span>Gestión de Expedientes</span>
-                        </a>
-                    </li>
-                    <li class="menu-item active" data-module="Consulta">
-                        <a href="@Url.Action("Consulta", "Account")">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2h-.2ZM17 21a2 2 0 0 0 4-4v-3h-4v7ZM3 10h4V3H3v7ZM12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5Z" /></svg>
-                            <span>Consulta Médica</span>
-                        </a>
-                    </li>
-                    <li class="menu-item @(currentAction.Equals("Facturacion", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Facturacion">
-                        <a href="@Url.Action("Facturacion", "Account")">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="4" x2="12" y2="20"></line></svg>
-                            <span>Módulo de Facturación</span>
-                        </a>
-                    </li>
-                </ul>
+                <nav class="nav-menu">
+                    <a href="@Url.Action("Inicio", "Account")" class="nav-item @(currentAction.Equals("Inicio", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Inicio">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="@Url.Action("Citas", "Account")" class="nav-item @(currentAction.Equals("Citas", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Citas">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span class="citas-label">Mis Citas</span>
+                    </a>
+                    <a href="@Url.Action("Agendar", "Account")" class="nav-item @(currentAction.Equals("Agendar", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Agendar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Agendar Cita</span>
+                    </a>
+                    <a href="@Url.Action("Expedientes", "Account")" class="nav-item @(currentAction.Equals("Expedientes", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Expedientes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        <span>Gestión de Expedientes</span>
+                    </a>
+                    <a href="@Url.Action("Consulta", "Account")" class="nav-item active" data-module="Consulta">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                        <span>Consulta Médica</span>
+                    </a>
+                    <a href="@Url.Action("Facturacion", "Account")" class="nav-item @(currentAction.Equals("Facturacion", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Facturacion">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                        <span>Módulo de Facturación</span>
+                    </a>
+                </nav>
             </div>
 
             <div class="sidebar-footer">
@@ -174,7 +162,7 @@
                     <div class="patient-card-header">
                         <div>
                             <h2 id="lblNombrePaciente">Sin paciente seleccionado</h2>
-                            <p class="patient-meta">Expediente: <b id="lblExpediente">---</b> • Edad: <span id="lblEdad">--</span> años</p>
+                            <p class="patient-meta">Expediente: <b id="lblExpediente">---</b> • Edad: <span id="lblEdad">--</span></p>
                         </div>
                         <button type="button" class="btn-history" id="btnOpenHistory">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -254,7 +242,117 @@
         </main>
     </div>
 
+    <!-- Modal Receta Física Imprimible con estilo oficial de PDF 2 -->
+    <div id="modalRecetaFisica" class="modal-overlay hidden">
+        <div class="modal-card modal-receta-card" style="max-width: 680px; width: 95%; background: #ffffff; border-radius: 12px; padding: 28px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            
+            <!-- Encabezado Institucional -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <div style="width: 44px; height: 44px; background: #ecfdf5; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #a7f3d0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: #10b981;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    </div>
+                    <div>
+                        <h2 style="color: #0d9488; font-size: 20px; font-weight: 800; margin: 0; line-height: 1.2;">CLÍNICA CURAVITA</h2>
+                        <div style="font-size: 11px; font-weight: 700; color: #0f766e; letter-spacing: 0.5px; margin-top: 2px;">ATENCIÓN MÉDICA INTEGRAL Y ESPECIALIZADA</div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 1px;">ESFE SYSCURAVITA • PBX: (503) 2200-0000 • San Salvador, El Salvador</div>
+                    </div>
+                </div>
+
+                <div style="border: 1.5px solid #38bdf8; border-radius: 8px; padding: 8px 16px; text-align: center; background-color: #f0f9ff; min-width: 170px;">
+                    <div style="font-size: 10px; font-weight: 800; color: #0284c7; letter-spacing: 0.5px;">RECETA MÉDICA</div>
+                    <div style="font-size: 17px; font-weight: 900; color: #0369a1; margin: 2px 0;" id="recetaCodigoDoc">REC-00030</div>
+                    <div style="font-size: 10px; color: #64748b;" id="recetaFecha">Fecha: 15/09/2026 05:58 p.m.</div>
+                </div>
+            </div>
+
+            <!-- Línea horizontal de corte -->
+            <div style="height: 3px; background: #0ea5e9; border-radius: 2px; margin: 14px 0 16px;"></div>
+
+            <!-- Datos del Paciente / Cita (2 columnas) -->
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; margin-bottom: 14px; font-size: 13px;">
+                <div>
+                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">PACIENTE</div>
+                    <div style="font-size: 14px; font-weight: 800; color: #0f172a;" id="recetaPaciente">---</div>
+                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px; margin-top: 8px;">ESPECIALIDAD / MOTIVO</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #0f172a;" id="recetaEspecialidad">---</div>
+                </div>
+                <div>
+                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">N° DE EXPEDIENTE</div>
+                    <div style="font-size: 14px; font-weight: 800; color: #0f172a;" id="recetaExpediente">---</div>
+                    <div style="font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px; margin-top: 8px;">MODALIDAD DE ATENCIÓN</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #0f172a;">Consulta Externa</div>
+                </div>
+            </div>
+
+            <!-- Cinta de Signos Vitales -->
+            <div style="background: #f0fdfa; border-left: 4px solid #0d9488; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 700; color: #0f766e; margin-bottom: 14px;" id="recetaVitalsBar">
+                P.A: <span id="recetaPA">--/--</span> • F.C: <span id="recetaFC">--</span> lpm • Temp: <span id="recetaTemp">--</span> °C • Peso: <span id="recetaPeso">--</span> kg
+            </div>
+
+            <!-- Diagnóstico Clínico -->
+            <div style="margin-bottom: 14px;">
+                <div style="font-size: 10px; font-weight: 800; color: #0f766e; letter-spacing: 0.5px; margin-bottom: 6px;">DIAGNÓSTICO CLÍNICO</div>
+                <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff; min-height: 40px; font-size: 13px; color: #1e293b;" id="recetaDiagTexto">
+                    Sin observaciones adicionales.
+                </div>
+            </div>
+
+            <!-- Prescripción Farmacológica (Tabla) -->
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 10px; font-weight: 800; color: #0f766e; letter-spacing: 0.5px; margin-bottom: 6px;">PRESCRIPCIÓN FARMACOLÓGICA</div>
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; font-size: 12px;">
+                    <thead>
+                        <tr style="background: #155e75; color: #ffffff; text-align: left;">
+                            <th style="padding: 8px 10px; width: 35px; text-align: center;">#</th>
+                            <th style="padding: 8px 10px;">MEDICAMENTO Y PRESENTACIÓN</th>
+                            <th style="padding: 8px 10px;">POSOLOGÍA / INDICACIONES DE USO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recetaTbodyMedicamentos">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Indicaciones y Firma -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 18px; padding-top: 12px; border-top: 1px solid #f1f5f9;">
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 10.5px; color: #64748b; line-height: 1.6;">
+                    <li>• Siga estrictamente la dosis y horarios prescritos.</li>
+                    <li>• No suspenda el tratamiento sin previa indicación médica.</li>
+                    <li>• En caso de reacciones adversas consulte a emergencias.</li>
+                </ul>
+
+                <div style="text-align: center; min-width: 200px;">
+                    <div style="border-bottom: 1px dashed #94a3b8; width: 180px; margin: 0 auto 6px;"></div>
+                    <div style="font-size: 11px; font-weight: 800; color: #0f766e;" id="recetaMedicoFirma">Dr. Roberto Gómez</div>
+                    <div style="font-size: 10px; color: #64748b;">Firma y Sello Profesional</div>
+                </div>
+            </div>
+
+            <!-- Footer Oficial -->
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 16px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                <span>ESFE SYSCURAVITA - Sistema Integral de Gestión Hospitalaria</span>
+                <span>Documento Médico Oficial • Válido por 30 días</span>
+            </div>
+
+            <!-- Acciones Modal (no se imprimen) -->
+            <div class="modal-actions no-print" style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-modal-cancel" id="btnCerrarReceta" style="padding: 10px 18px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; font-weight: 600; cursor: pointer;">Cerrar</button>
+                <button type="button" class="btn-accept-action btn-primary-bg" id="btnPrintReceta" style="display: flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; background: #0d9488; color: white; border: none; font-weight: 700; cursor: pointer;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Imprimir Receta</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor Global de Notificaciones (Toast) -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <script src="~/js/permisos.js" asp-append-version="true"></script>
     <script src="~/js/inicio.js" asp-append-version="true"></script>
+    <script src="~/js/validaciones.js" asp-append-version="true"></script>
+    <script src="~/js/consulta.js" asp-append-version="true"></script>
 </body>
 </html>

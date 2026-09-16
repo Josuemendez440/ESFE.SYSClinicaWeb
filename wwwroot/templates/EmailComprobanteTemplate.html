@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante de Anticipo y Reserva - Curavita</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-font-smoothing: antialiased;">
+
+    <!-- Contenedor Principal -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f7f6; padding: 36px 12px;">
+        <tr>
+            <td align="center">
+
+                <!-- Tarjeta Principal del Comprobante -->
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; border: 1px solid #d1e7dd; overflow: hidden; box-shadow: 0 10px 25px rgba(13, 148, 136, 0.08);">
+
+                    <!-- Encabezado / Logo -->
+                    <tr>
+                        <td align="center" style="padding: 28px 24px 20px 24px; background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); color: #ffffff;">
+                            <img src="cid:logo_curavita" alt="Curavita" width="120" style="display: block; border: 0; max-width: 120px; height: auto; margin-bottom: 12px;">
+                            <span style="display: inline-block; background-color: rgba(255, 255, 255, 0.2); color: #ffffff; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">
+                                Comprobante de Pago & Reserva
+                            </span>
+                        </td>
+                    </tr>
+
+                    <!-- Cuerpo del Comprobante -->
+                    <tr>
+                        <td style="padding: 32px 28px;">
+
+                            <div style="text-align: center; margin-bottom: 24px;">
+                                <div style="display: inline-block; width: 50px; height: 50px; line-height: 50px; background-color: #ecfdf5; border: 2px solid #10b981; border-radius: 50%; color: #047857; font-size: 24px; font-weight: bold; margin-bottom: 12px;">
+                                    ✓
+                                </div>
+                                <h1 style="color: #111827; font-size: 20px; font-weight: 800; margin: 0 0 6px 0;">
+                                    ¡Tu Cita ha sido Confirmada!
+                                </h1>
+                                <p style="color: #6b7280; font-size: 13px; margin: 0;">
+                                    Hemos procesado el anticipo del 25% con éxito. Referencia de Cita: <strong>#{{ID_CITA}}</strong>
+                                </p>
+                            </div>
+
+                            <!-- Tabla de Detalles de la Cita -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 24px; overflow: hidden;">
+                                <tr>
+                                    <td colspan="2" style="padding: 12px 16px; background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        Detalles de la Consulta
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #64748b; width: 40%; border-bottom: 1px solid #f1f5f9;">Paciente:</td>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #1e293b; font-weight: 700; border-bottom: 1px solid #f1f5f9;">{{PACIENTE}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #64748b; border-bottom: 1px solid #f1f5f9;">Especialidad:</td>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #0d9488; font-weight: 700; border-bottom: 1px solid #f1f5f9;">{{ESPECIALIDAD}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #64748b; border-bottom: 1px solid #f1f5f9;">Médico Asignado:</td>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #1e293b; font-weight: 600; border-bottom: 1px solid #f1f5f9;">{{MEDICO}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #64748b; border-bottom: 1px solid #f1f5f9;">Fecha y Hora:</td>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #1e293b; font-weight: 700; border-bottom: 1px solid #f1f5f9;">{{FECHA_HORA}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #64748b;">Titular del Pago:</td>
+                                    <td style="padding: 12px 16px; font-size: 13px; color: #1e293b; font-weight: 600;">{{TITULAR_TARJETA}}</td>
+                                </tr>
+                            </table>
+
+                            <!-- Desglose Económico -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ecfdf5; border: 1px dashed #a7f3d0; border-radius: 12px; margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 14px 18px; font-size: 13px; color: #065f46;">Precio Total Consulta:</td>
+                                    <td align="right" style="padding: 14px 18px; font-size: 13px; color: #065f46; font-weight: 600;">{{PRECIO_TOTAL}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0 18px 14px 18px; font-size: 14px; color: #047857; font-weight: 700;">Anticipo Pagado en Línea (25%):</td>
+                                    <td align="right" style="padding: 0 18px 14px 18px; font-size: 16px; color: #047857; font-weight: 800;">{{MONTO_ANTICIPO}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 18px; font-size: 13px; color: #b45309; background-color: #fffbeb; border-radius: 0 0 0 12px; border-top: 1px solid #fef3c7;">Saldo Pendiente en Clínica (75%):</td>
+                                    <td align="right" style="padding: 12px 18px; font-size: 14px; color: #b45309; font-weight: 800; background-color: #fffbeb; border-radius: 0 0 12px 0; border-top: 1px solid #fef3c7;">{{SALDO_PENDIENTE}}</td>
+                                </tr>
+                            </table>
+
+                            <!-- Nota Informativa -->
+                            <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;">
+                                <p style="color: #166534; font-size: 12px; line-height: 1.5; margin: 0;">
+                                    📌 <strong>Importante:</strong> Te recomendamos presentarte 10 minutos antes en la recepción de la clínica con tu documento de identidad. El saldo pendiente de <strong>{{SALDO_PENDIENTE}}</strong> se liquidará en caja el día de tu consulta.
+                                </p>
+                            </div>
+
+                            <p style="color: #9ca3af; font-size: 11px; text-align: center; margin: 0;">
+                                Si necesitas reprogramar o cancelar tu cita, por favor comunícate con nosotros al menos 24 horas antes.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Pie de Página -->
+                    <tr>
+                        <td align="center" style="background-color: #0f766e; padding: 18px 24px; text-align: center;">
+                            <p style="color: #ffffff; font-size: 12px; font-weight: 600; margin: 0 0 4px 0;">
+                                Clínica Médica Curavita
+                            </p>
+                            <p style="color: #ccfbf1; font-size: 11px; margin: 0;">
+                                Cuidando de tu salud y bienestar &bull; &copy; 2026 Todos los derechos reservados.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

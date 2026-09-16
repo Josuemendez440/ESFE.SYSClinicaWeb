@@ -69,6 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem('usuario', nombreReal);
                     sessionStorage.setItem('rol', rolReal);
                     sessionStorage.setItem('modulos', JSON.stringify(modulosReal));
+                    if (data.correo) {
+                        sessionStorage.setItem('correo', data.correo);
+                    }
                     sessionStorage.setItem('redirectUrl', data.redirectUrl || '/Account/Inicio');
 
                     if (window.chrome && window.chrome.webview) {

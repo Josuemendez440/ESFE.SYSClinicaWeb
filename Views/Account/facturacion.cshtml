@@ -40,7 +40,7 @@
                         <span>Gestión de Expedientes</span>
                     </a>
                     <a href="@Url.Action("Consulta", "Account")" class="nav-item @(currentAction.Equals("Consulta", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Consulta">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2h-.2ZM17 21a2 2 0 0 0 4-4v-3h-4v7ZM3 10h4V3H3v7ZM12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5Z" /></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
                         <span>Consulta Médica</span>
                     </a>
                     <a href="@Url.Action("Facturacion", "Account")" class="nav-item active" data-module="Facturacion">
@@ -87,36 +87,111 @@
                     </div>
 
                     <form id="formPago" class="hidden">
+                        <div class="factura-meta-box">
+                            <div>N° FACTURA: <strong id="lblNumeroFactura">FAC-00031</strong></div>
+                            <div>FECHA: <strong id="lblFechaFactura">15/09/2026</strong></div>
+                        </div>
+
+                        <div class="factura-patient-pill">
+                            <div>Paciente: <strong id="lblPacienteFactura">---</strong> (<span id="lblCodigoFactura">---</span>)</div>
+                            <div>Servicio: <strong id="lblEspecialidadFactura">---</strong></div>
+                        </div>
+
                         <div class="form-group">
-                            <label>TOTAL A PAGAR</label>
+                            <label>DESGLOSE DEL PAGO</label>
+                            <div id="desgloseAnticipo" class="desglose-box" style="display:none;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>TOTAL A PAGAR HOY</label>
                             <div id="montoPagar" class="total-amount">$0.00</div>
                         </div>
 
                         <div class="form-group">
                             <label for="metodoPago">MÉTODO DE PAGO</label>
                             <select id="metodoPago" class="form-control" required>
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Tarjeta">Tarjeta</option>
+                                <option value="Efectivo" selected>Efectivo</option>
+                                <option value="Tarjeta">Tarjeta de Débito / Crédito</option>
                             </select>
                         </div>
 
                         <div class="form-group" id="grupoEfectivo">
-                            <label for="montoRecibido">MONTO RECIBIDO</label>
+                            <label for="montoRecibido">MONTO RECIBIDO ($)</label>
                             <input type="number" id="montoRecibido" class="form-control" step="0.01" min="0" placeholder="0.00" />
                         </div>
 
                         <div class="form-group" id="grupoCambio">
-                            <label>CAMBIO</label>
+                            <label>CAMBIO ($)</label>
                             <div id="montoCambio" class="change-amount">$0.00</div>
                         </div>
 
-                        <button type="submit" class="btn-submit" id="btnProcesarPago" disabled>Procesar Pago</button>
+                        <button type="submit" class="btn-submit" id="btnProcesarPago" disabled>Finalizar</button>
                     </form>
                 </section>
 
             </div>
         </main>
     </div>
+
+    <!-- Modal Flotante Factura Finalizada con Éxito -->
+    <div id="modalFacturaFinalizada" class="modal-overlay hidden">
+        <div class="modal-success-card">
+            <div class="modal-icon-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h3 class="modal-title" style="margin-bottom: 6px;">¡Factura Finalizada con Éxito!</h3>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 16px;">
+                La transacción ha sido registrada y liquidada satisfactoriamente.
+            </p>
+
+            <div class="modal-summary-box">
+                <div class="modal-summary-row">
+                    <span>N° Factura:</span>
+                    <strong id="modalFacturaNum">FAC-00031</strong>
+                </div>
+                <div class="modal-summary-row">
+                    <span>Paciente:</span>
+                    <strong id="modalFacturaPac">---</strong>
+                </div>
+                <div class="modal-summary-row">
+                    <span>Especialidad:</span>
+                    <strong id="modalFacturaEsp">---</strong>
+                </div>
+                <div class="modal-summary-row">
+                    <span>Método de Pago:</span>
+                    <strong id="modalFacturaMetodo">Efectivo</strong>
+                </div>
+                <div class="modal-summary-row highlight">
+                    <span>Total Cancelado:</span>
+                    <strong id="modalFacturaTotal">$0.00</strong>
+                </div>
+            </div>
+
+            <!-- Envío de Comprobante por Correo -->
+            <div class="email-send-group">
+                <input type="email" id="inputCorreoFactura" placeholder="correo@paciente.com" />
+                <button type="button" id="btnEnviarCorreoFactura" class="btn-send-email">
+                    <span>Enviar</span>
+                </button>
+            </div>
+
+            <!-- Acciones de Factura -->
+            <div class="modal-action-buttons">
+                <button type="button" id="btnPrintFactura" class="btn-print-bill">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Ver / Imprimir PDF</span>
+                </button>
+                <button type="button" id="btnSiguienteFactura" class="btn-finish-all">
+                    <span>Listo / Siguiente</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor Global de Notificaciones (Toast) -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <!-- Modal Confirmar Cerrar Sesión (Misma estructura de Inicio) -->
     <div id="logoutModal" class="modal-overlay hidden">
@@ -139,5 +214,7 @@
 
     <script src="~/js/permisos.js" asp-append-version="true"></script>
     <script src="~/js/inicio.js" asp-append-version="true"></script>
+    <script src="~/js/validaciones.js" asp-append-version="true"></script>
+    <script src="~/js/facturacion.js" asp-append-version="true"></script>
 </body>
 </html>

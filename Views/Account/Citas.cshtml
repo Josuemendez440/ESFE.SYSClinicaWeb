@@ -1,3 +1,4 @@
+@model IEnumerable<ESFE.ClinicaWEB.Models.CitasViewModel>
 @{
     Layout = null;
     ViewData["Title"] = "Mis Citas - Curavita";
@@ -40,7 +41,7 @@
                         <span>Gestión de Expedientes</span>
                     </a>
                     <a href="@Url.Action("Consulta", "Account")" class="nav-item @(currentAction.Equals("Consulta", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Consulta">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2h-.2ZM17 21a2 2 0 0 0 4-4v-3h-4v7ZM3 10h4V3H3v7ZM12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5Z" /></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
                         <span>Consulta Médica</span>
                     </a>
                     <a href="@Url.Action("Facturacion", "Account")" class="nav-item @(currentAction.Equals("Facturacion", StringComparison.OrdinalIgnoreCase) ? "active" : "")" data-module="Facturacion">
@@ -85,31 +86,53 @@
                     <h3 class="citas-title">Próximas Citas Programadas</h3>
 
                     <div class="citas-list">
-                        <!-- Cita 1 -->
-                        <div class="cita-item">
-                            <div class="cita-date-box">
-                                <span class="day">15</span>
-                                <span class="month">OCT</span>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var cita in Model)
+                            {
+                                string dia = cita.FechaHora.ToString("dd");
+                                string mes = cita.FechaHora.ToString("MMM", new System.Globalization.CultureInfo("es-ES")).ToUpper().Replace(".", "");
+                                string horaStr = cita.FechaHora.ToString("hh:mm tt");
+                                <div class="cita-item">
+                                    <div class="cita-date-box">
+                                        <span class="day">@dia</span>
+                                        <span class="month">@mes</span>
+                                    </div>
+                                    <div class="cita-details">
+                                        <h4>@cita.Especialidad</h4>
+                                        <p>@cita.Medico • @horaStr • Paciente: @cita.Paciente</p>
+                                    </div>
+                                    <span class="status-badge">@(cita.PagoConfirmado ? "Confirmada" : "Pendiente")</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Citas de muestra si no hay registros -->
+                            <div class="cita-item">
+                                <div class="cita-date-box">
+                                    <span class="day">15</span>
+                                    <span class="month">OCT</span>
+                                </div>
+                                <div class="cita-details">
+                                    <h4>Cardiología</h4>
+                                    <p>Dr. Carlos Mendoza • 09:00 AM</p>
+                                </div>
+                                <span class="status-badge">Confirmada</span>
                             </div>
-                            <div class="cita-details">
-                                <h4>Cardiología</h4>
-                                <p>Dr. Carlos Mendoza • 09:00 AM</p>
-                            </div>
-                            <span class="status-badge">Confirmada</span>
-                        </div>
 
-                        <!-- Cita 2 -->
-                        <div class="cita-item">
-                            <div class="cita-date-box">
-                                <span class="day">28</span>
-                                <span class="month">NOV</span>
+                            <div class="cita-item">
+                                <div class="cita-date-box">
+                                    <span class="day">28</span>
+                                    <span class="month">NOV</span>
+                                </div>
+                                <div class="cita-details">
+                                    <h4>Medicina General</h4>
+                                    <p>Dra. Elena Ramos • 02:30 PM</p>
+                                </div>
+                                <span class="status-badge">Confirmada</span>
                             </div>
-                            <div class="cita-details">
-                                <h4>Medicina General</h4>
-                                <p>Dra. Elena Ramos • 02:30 PM</p>
-                            </div>
-                            <span class="status-badge">Confirmada</span>
-                        </div>
+                        }
                     </div>
                 </div>
             </section>

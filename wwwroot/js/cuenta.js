@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
     // 1. Manejo del toggle para ver/ocultar contraseñas
     const setupPasswordToggle = (toggleId, inputId) => {
         const toggleBtn = document.getElementById(toggleId);
@@ -31,11 +31,55 @@
         registerForm.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            const pass = document.getElementById("txtClaveReg").value;
-            const confirmPass = document.getElementById("txtConfirmarClaveReg").value;
+            const nombreInput = document.getElementById("txtNombreReg");
+            const correoInput = document.getElementById("txtCorreoReg");
+            const passInput = document.getElementById("txtClaveReg");
+            const confirmPassInput = document.getElementById("txtConfirmarClaveReg");
+
+            const nombre = nombreInput?.value.trim() || "";
+            const correo = correoInput?.value.trim() || "";
+            const pass = passInput?.value || "";
+            const confirmPass = confirmPassInput?.value || "";
+
+            // Limpiar errores visuales
+            [nombreInput, correoInput, passInput, confirmPassInput].forEach(inp => {
+                if (typeof limpiarError === "function") limpiarError(inp);
+            });
+
+            if (typeof validarNombre === "function") {
+                const resNom = validarNombre(nombre, "El nombre completo");
+                if (!resNom.valido) {
+                    mostrarModal(resNom.mensaje, false);
+                    if (typeof marcarError === "function") marcarError(nombreInput, resNom.mensaje);
+                    nombreInput?.focus();
+                    return;
+                }
+            }
+
+            if (typeof validarEmail === "function") {
+                const resEmail = validarEmail(correo);
+                if (!resEmail.valido) {
+                    mostrarModal(resEmail.mensaje, false);
+                    if (typeof marcarError === "function") marcarError(correoInput, resEmail.mensaje);
+                    correoInput?.focus();
+                    return;
+                }
+            }
+
+            if (typeof validarPassword === "function") {
+                const resPass = validarPassword(pass);
+                if (!resPass.valido) {
+                    mostrarModal(resPass.mensaje, false);
+                    if (typeof marcarError === "function") marcarError(passInput, resPass.mensaje);
+                    passInput?.focus();
+                    return;
+                }
+            }
 
             if (pass !== confirmPass) {
-                mostrarModal("Las contraseñas no coinciden.", false);
+                mostrarModal("Las contraseñas no coinciden. Por favor verifique.", false);
+                if (typeof marcarError === "function") marcarError(confirmPassInput, "Las contraseñas no coinciden.");
+                confirmPassInput?.focus();
                 return;
             }
 
