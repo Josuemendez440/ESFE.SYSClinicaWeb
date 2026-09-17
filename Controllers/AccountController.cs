@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
@@ -111,7 +112,6 @@ namespace ESFE.ClinicaWEB.Controllers
             return BadRequest(new { exito = false, mensaje = "Correo o contraseña incorrectos." });
         }
 
-        // POST: /Account/Registrar
         [HttpPost]
         public async Task<IActionResult> Registrar(RegisterViewModel model)
         {
@@ -127,7 +127,6 @@ namespace ESFE.ClinicaWEB.Controllers
 
             string correoNormalizado = model.Email.Trim().ToLower();
 
-            // 1. Dividir FullName sin perder palabras y extraer componentes para el username
             var partes = model.FullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
             string nombres = "";
@@ -159,7 +158,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 primerApellidoLimpio = RemoverAcentos(partes[2]);
             }
 
-            // 2. Generar Username Base (Ej: "josue" + "m" -> "josuem")
             string inicialApellido = !string.IsNullOrEmpty(primerApellidoLimpio) ? primerApellidoLimpio[0].ToString() : "";
             string usernameBase = $"{primerNombreLimpio}{inicialApellido}".ToLower();
 
@@ -175,7 +173,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 using var conn = new SqlConnection(connectionString);
                 await conn.OpenAsync();
 
-                // 3. Comprobar si el correo ya existe
                 string checkEmailQuery = "SELECT COUNT(1) FROM dbo.Usuarios WHERE LOWER(correo) = @correo";
                 using (var checkEmailCmd = new SqlCommand(checkEmailQuery, conn))
                 {
@@ -192,7 +189,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
-                // 4. Garantizar Username Único (Agrega correlativo 1, 2, 3... si ya existe)
                 string usernameGenerado = usernameBase;
                 int contador = 1;
 
@@ -205,14 +201,13 @@ namespace ESFE.ClinicaWEB.Controllers
 
                     if (existeUser == 0)
                     {
-                        break; // Username disponible
+                        break;
                     }
 
                     usernameGenerado = $"{usernameBase}{contador}";
                     contador++;
                 }
 
-                // 5. Buscar dinámicamente el rol_id para el rol 'Cliente'
                 int rolClienteId = 5;
                 string getRolQuery = "SELECT rol_id FROM dbo.Roles WHERE LOWER(nombre_rol) = 'cliente'";
                 using (var rolCmd = new SqlCommand(getRolQuery, conn))
@@ -224,7 +219,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
-                // 6. Insertar usuario guardando username, correo, nombres y apellidos correctamente
                 string insertQuery = @"
                     INSERT INTO dbo.Usuarios (username, correo, password_hash, nombres, apellidos, rol_id, especialidad_id, estado, fecha_creacion)
                     VALUES (@username, @correo, @password_hash, @nombres, @apellidos, @rol_id, NULL, 1, GETDATE())";
@@ -259,7 +253,6 @@ namespace ESFE.ClinicaWEB.Controllers
             }
         }
 
-        // POST: /Account/EnviarCodigoRecuperacion
         [HttpPost]
         public async Task<IActionResult> EnviarCodigoRecuperacion([FromBody] SolicitudCorreoDto model)
         {
@@ -322,7 +315,6 @@ namespace ESFE.ClinicaWEB.Controllers
             }
         }
 
-        // POST: /Account/ValidarCodigoOtp
         [HttpPost]
         public async Task<IActionResult> ValidarCodigoOtp([FromBody] ValidarOtpDto model)
         {
@@ -363,7 +355,6 @@ namespace ESFE.ClinicaWEB.Controllers
             return Json(new { exito = false, mensaje = "El código ingresado es incorrecto o ha expirado." });
         }
 
-        // POST: /Account/RestablecerPassword
         [HttpPost]
         public async Task<IActionResult> RestablecerPassword([FromBody] NuevaPasswordDto model, [FromQuery] string email)
         {
@@ -396,59 +387,82 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet] public IActionResult Contrasena() => View();
         [HttpGet] public IActionResult Cuenta() => View();
         [HttpGet] public IActionResult Inicio() => View();
+
         [HttpGet]
         public async Task<IActionResult> Citas()
         {
+            var listaCitas = new List<CitasViewModel>();
+            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+
             try
             {
-                var citas = await _context.Citas.OrderByDescending(c => c.FechaHora).ToListAsync();
-                return View(citas);
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                string query = @"
+                    SELECT 
+                        c.consulta_id AS Id,
+                        CONCAT(p.nombres, ' ', p.apellidos) AS Paciente,
+                        ISNULL(e.nombre_especialidad, 'Medicina General') AS Especialidad,
+                        ISNULL(CONCAT(u.nombres, ' ', u.apellidos), 'Doctor Asignado') AS Medico,
+                        c.fecha_consulta AS FechaHora,
+                        CAST(CASE WHEN pg.pago_id IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS PagoConfirmado,
+                        ISNULL(pg.monto_pagado, 6.25) AS MontoAnticipo,
+                        18.75 AS SaldoPendiente
+                    FROM dbo.Consultas c
+                    INNER JOIN dbo.Pacientes p ON c.paciente_id = p.paciente_id
+                    LEFT JOIN dbo.Usuarios u ON c.medico_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN dbo.Pagos pg ON c.consulta_id = pg.consulta_id
+                    ORDER BY c.fecha_consulta DESC";
+
+                using var cmd = new SqlCommand(query, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    listaCitas.Add(new CitasViewModel
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        Paciente = reader.GetString(reader.GetOrdinal("Paciente")),
+                        Especialidad = reader.GetString(reader.GetOrdinal("Especialidad")),
+                        Medico = reader.GetString(reader.GetOrdinal("Medico")),
+                        FechaHora = reader.GetDateTime(reader.GetOrdinal("FechaHora")),
+                        PagoConfirmado = reader.GetBoolean(reader.GetOrdinal("PagoConfirmado")),
+                        MontoAnticipo = reader.GetDecimal(reader.GetOrdinal("MontoAnticipo")),
+                        SaldoPendiente = reader.GetDecimal(reader.GetOrdinal("SaldoPendiente"))
+                    });
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                return View();
+                Console.WriteLine("[SQL Error] Error al obtener las citas de dbo.Consultas: " + ex.Message);
             }
+
+            return View(listaCitas);
         }
 
-        // GET: /Account/Agendar
         [HttpGet]
         public IActionResult Agendar() => View();
 
-        // POST: /Account/Agendar (Guarda la cita en la BD SQL usando Entity Framework Core)
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Agendar(CitasViewModel cita)
+        public async Task<IActionResult> Agendar([FromBody] CitasViewModel cita)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Citas.Add(cita);
-                await _context.SaveChangesAsync();
-
-                return RedirectToAction("Confirma_pago", new { id = cita.Id });
-            }
-
-            return View(cita);
-        }
-
-        // GET: /Account/Confirma_pago/5 (Obtiene los detalles de la cita agendada por su ID)
-        [HttpGet]
-        public async Task<IActionResult> Confirma_pago(int? id)
-        {
-            if (id == null)
-            {
-                return View();
-            }
-
-            var cita = await _context.Citas.FindAsync(id);
             if (cita == null)
             {
-                return NotFound();
+                return BadRequest(new { exito = false, mensaje = "Los datos de la cita no fueron recibidos." });
             }
 
-            return View(cita);
+            int citaIdFicticia = new Random().Next(1000, 9999);
+            return Json(new { exito = true, citaId = citaIdFicticia, redirectUrl = $"/Account/Confirma_pago?id={citaIdFicticia}" });
         }
 
-        // POST: /Account/ConfirmarPago
+        [HttpGet]
+        public IActionResult Confirma_pago(int? id)
+        {
+            return View();
+        }
+
         [HttpPost]
         public async Task<IActionResult> ConfirmarPago()
         {
@@ -467,6 +481,10 @@ namespace ESFE.ClinicaWEB.Controllers
                     {
                         CitaId = int.TryParse(form["CitaId"], out var cid) ? cid : 0,
                         Paciente = form["Paciente"].ToString(),
+                        Nombres = form["Nombres"].ToString(),
+                        Apellidos = form["Apellidos"].ToString(),
+                        Dui = form["Dui"].ToString(),
+                        Telefono = form["Telefono"].ToString(),
                         Especialidad = form["Especialidad"].ToString(),
                         Medico = form["Medico"].ToString(),
                         Fecha = form["Fecha"].ToString(),
@@ -493,170 +511,156 @@ namespace ESFE.ClinicaWEB.Controllers
                 return BadRequest(new { exito = false, mensaje = "Datos de solicitud inválidos: " + ex.Message });
             }
 
-            // 1. Resolver Fecha y Hora de la cita
-            DateTime fechaHoraFinal = DateTime.Now;
-            bool fechaParseada = false;
-
-            if (!string.IsNullOrWhiteSpace(model.Fecha) && !string.IsNullOrWhiteSpace(model.Hora))
-            {
-                string combined = $"{model.Fecha.Trim()} {model.Hora.Trim()}";
-                if (DateTime.TryParse(combined, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dtInv))
-                {
-                    fechaHoraFinal = dtInv;
-                    fechaParseada = true;
-                }
-                else if (DateTime.TryParse(combined, new CultureInfo("es-ES"), DateTimeStyles.None, out var dtEs))
-                {
-                    fechaHoraFinal = dtEs;
-                    fechaParseada = true;
-                }
-            }
-
-            if (!fechaParseada && !string.IsNullOrWhiteSpace(model.Fecha))
-            {
-                if (DateTime.TryParse(model.Fecha.Trim(), out var dtSoloFecha))
-                {
-                    fechaHoraFinal = dtSoloFecha;
-                    fechaParseada = true;
-                }
-            }
-
-            if (!fechaParseada && !string.IsNullOrWhiteSpace(model.FechaHora))
-            {
-                if (DateTime.TryParse(model.FechaHora.Trim(), out var dtDirecto))
-                {
-                    fechaHoraFinal = dtDirecto;
-                    fechaParseada = true;
-                }
-            }
-
             string nombrePaciente = !string.IsNullOrWhiteSpace(model.Paciente) ? model.Paciente.Trim() : "Paciente Curavita";
-            string nombreEspecialidad = !string.IsNullOrWhiteSpace(model.Especialidad) ? model.Especialidad.Trim() : "Medicina General";
-            string nombreMedico = !string.IsNullOrWhiteSpace(model.Medico) ? model.Medico.Trim() : "Dr. Roberto Gómez";
+            string nombresVal = !string.IsNullOrWhiteSpace(model.Nombres) ? model.Nombres.Trim() : nombrePaciente;
+            string apellidosVal = !string.IsNullOrWhiteSpace(model.Apellidos) ? model.Apellidos.Trim() : "General";
+            string duiVal = !string.IsNullOrWhiteSpace(model.Dui) ? model.Dui.Trim() : "0" + new Random().Next(10000000, 99999999).ToString() + "-0";
 
-            decimal total = model.PrecioTotal > 0 ? model.PrecioTotal : 50.00m;
-            decimal anticipo = model.MontoAnticipo > 0 ? model.MontoAnticipo : 12.50m;
-            decimal saldo = total - anticipo;
+            int idPacienteGenerado = 0;
+            string codigoExpedienteGenerado = "";
+            int consultaIdGenerada = 0;
 
-            CitasViewModel citaProcesada;
+            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
 
-            // 2. Procesar registro en la Base de Datos
             try
             {
-                if (model.CitaId > 0)
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                // 1. Buscar o registrar paciente
+                string checkQuery = "SELECT paciente_id, codigo_expediente FROM dbo.Pacientes WHERE dui_documento = @dui";
+                using (var checkCmd = new SqlCommand(checkQuery, conn))
                 {
-                    var citaExistente = await _context.Citas.FindAsync(model.CitaId);
-                    if (citaExistente != null)
+                    checkCmd.Parameters.AddWithValue("@dui", duiVal);
+                    using var reader = await checkCmd.ExecuteReaderAsync();
+                    if (await reader.ReadAsync())
                     {
-                        citaExistente.PagoConfirmado = true;
-                        citaExistente.MontoAnticipo = anticipo;
-                        citaExistente.SaldoPendiente = saldo;
-                        _context.Citas.Update(citaExistente);
-                        await _context.SaveChangesAsync();
-                        citaProcesada = citaExistente;
-                    }
-                    else
-                    {
-                        citaProcesada = new CitasViewModel
-                        {
-                            Paciente = nombrePaciente,
-                            Especialidad = nombreEspecialidad,
-                            Medico = nombreMedico,
-                            FechaHora = fechaHoraFinal,
-                            PrecioTotal = total,
-                            MontoAnticipo = anticipo,
-                            SaldoPendiente = saldo,
-                            PagoConfirmado = true
-                        };
-                        _context.Citas.Add(citaProcesada);
-                        await _context.SaveChangesAsync();
+                        idPacienteGenerado = reader.GetInt32(0);
+                        codigoExpedienteGenerado = reader.GetString(1);
                     }
                 }
-                else
+
+                if (idPacienteGenerado == 0)
                 {
-                    citaProcesada = new CitasViewModel
+                    string insertPacienteQuery = @"
+                        DECLARE @SiguienteId INT = (SELECT ISNULL(MAX(paciente_id), 0) + 1 FROM dbo.Pacientes);
+                        DECLARE @CodigoExp VARCHAR(20) = 'PAC-' + RIGHT('000' + CAST(@SiguienteId AS VARCHAR(10)), 4);
+
+                        INSERT INTO dbo.Pacientes (codigo_expediente, nombres, apellidos, dui_documento, telefono, fecha_creacion)
+                        VALUES (@CodigoExp, @nombres, @apellidos, @dui_documento, @telefono, GETDATE());
+
+                        SELECT SCOPE_IDENTITY() AS NuevoId, @CodigoExp AS CodigoGenerado;";
+
+                    using var insertCmd = new SqlCommand(insertPacienteQuery, conn);
+                    insertCmd.Parameters.AddWithValue("@nombres", nombresVal);
+                    insertCmd.Parameters.AddWithValue("@apellidos", apellidosVal);
+                    insertCmd.Parameters.AddWithValue("@dui_documento", duiVal);
+                    insertCmd.Parameters.AddWithValue("@telefono", (object?)model.Telefono ?? DBNull.Value);
+
+                    using var readerResult = await insertCmd.ExecuteReaderAsync();
+                    if (await readerResult.ReadAsync())
                     {
-                        Paciente = nombrePaciente,
-                        Especialidad = nombreEspecialidad,
-                        Medico = nombreMedico,
-                        FechaHora = fechaHoraFinal,
-                        PrecioTotal = total,
-                        MontoAnticipo = anticipo,
-                        SaldoPendiente = saldo,
-                        PagoConfirmado = true
-                    };
-                    _context.Citas.Add(citaProcesada);
-                    await _context.SaveChangesAsync();
+                        idPacienteGenerado = Convert.ToInt32(readerResult["NuevoId"]);
+                        codigoExpedienteGenerado = readerResult["CodigoGenerado"]?.ToString() ?? $"PAC-{idPacienteGenerado:D4}";
+                    }
+                }
+
+                // 2. Parsear fecha de la consulta
+                DateTime fechaCitaParsed = DateTime.Now;
+                if (!string.IsNullOrWhiteSpace(model.FechaHora) && DateTime.TryParse(model.FechaHora, out var dtParsed))
+                {
+                    fechaCitaParsed = dtParsed;
+                }
+                else if (!string.IsNullOrWhiteSpace(model.Fecha))
+                {
+                    string fechaCombinada = !string.IsNullOrWhiteSpace(model.Hora) ? $"{model.Fecha} {model.Hora}" : model.Fecha;
+                    if (!DateTime.TryParse(fechaCombinada, CultureInfo.InvariantCulture, DateTimeStyles.None, out fechaCitaParsed))
+                    {
+                        DateTime.TryParse(model.Fecha, out fechaCitaParsed);
+                    }
+                }
+
+                // Obtener ID de un usuario activo para recepcionista/registrador
+                int recepcionistaId = 1;
+                using (var recepCmd = new SqlCommand("SELECT TOP 1 usuario_id FROM dbo.Usuarios WHERE estado = 1 ORDER BY usuario_id ASC", conn))
+                {
+                    var resRecep = await recepCmd.ExecuteScalarAsync();
+                    if (resRecep != null && resRecep != DBNull.Value) recepcionistaId = Convert.ToInt32(resRecep);
+                }
+
+                // 3. Registrar la consulta en dbo.Consultas
+                string insertConsultaQuery = @"
+                    INSERT INTO dbo.Consultas 
+                        (paciente_id, medico_id, recepcionista_id, fecha_consulta, tipo_atencion_id, estado_consulta_id, es_emergencia)
+                    VALUES 
+                        (@paciente_id, NULL, @recepcionista_id, @fecha_consulta, 1, 1, 0);
+                    SELECT SCOPE_IDENTITY();";
+
+                using (var cmdConsulta = new SqlCommand(insertConsultaQuery, conn))
+                {
+                    cmdConsulta.Parameters.AddWithValue("@paciente_id", idPacienteGenerado);
+                    cmdConsulta.Parameters.AddWithValue("@recepcionista_id", recepcionistaId);
+                    cmdConsulta.Parameters.AddWithValue("@fecha_consulta", fechaCitaParsed);
+
+                    var resConsulta = await cmdConsulta.ExecuteScalarAsync();
+                    if (resConsulta != null) consultaIdGenerada = Convert.ToInt32(resConsulta);
+                }
+
+                // 4. Registrar el Pago en dbo.Pagos
+                if (consultaIdGenerada > 0)
+                {
+                    decimal montoAnticipo = model.MontoAnticipo > 0 ? model.MontoAnticipo : 6.25m;
+                    string insertPagoQuery = @"
+                        INSERT INTO dbo.Pagos (consulta_id, metodo_pago_id, estado_pago_id, monto_pagado, fecha_pago, cajero_id)
+                        VALUES (@consulta_id, 2, 1, @monto_pagado, GETDATE(), @cajero_id)";
+
+                    using var cmdPago = new SqlCommand(insertPagoQuery, conn);
+                    cmdPago.Parameters.AddWithValue("@consulta_id", consultaIdGenerada);
+                    cmdPago.Parameters.AddWithValue("@monto_pagado", montoAnticipo);
+                    cmdPago.Parameters.AddWithValue("@cajero_id", recepcionistaId);
+
+                    await cmdPago.ExecuteNonQueryAsync();
                 }
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { exito = false, mensaje = "Error al guardar la cita en la base de datos: " + ex.Message });
+                return StatusCode(500, new { exito = false, mensaje = "Error al guardar en la base de datos SQL Server: " + ex.Message });
             }
 
-            // 3. Obtener correo de destino para el comprobante
+            // 5. Enviar comprobante por correo
             string correoDestino = model.Correo?.Trim() ?? "";
-
-            if (string.IsNullOrWhiteSpace(correoDestino))
-            {
-                try
-                {
-                    string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
-                    using var conn = new SqlConnection(connectionString);
-                    await conn.OpenAsync();
-
-                    string query = @"
-                        SELECT TOP 1 correo 
-                        FROM dbo.Usuarios 
-                        WHERE LOWER(RTRIM(CONCAT(nombres, ' ', apellidos))) = LOWER(@paciente)
-                           OR LOWER(nombres) = LOWER(@paciente)";
-
-                    using var cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@paciente", nombrePaciente.ToLower());
-                    var result = await cmd.ExecuteScalarAsync();
-                    if (result != null && result != DBNull.Value)
-                    {
-                        correoDestino = result.ToString() ?? "";
-                    }
-                }
-                catch { }
-            }
-
             if (string.IsNullOrWhiteSpace(correoDestino))
             {
                 correoDestino = _configuration["EmailSettings:SenderEmail"] ?? "";
             }
 
-            // 4. Integrar el Envío de Correo Electrónico con la plantilla de comprobante
             try
             {
                 if (!string.IsNullOrWhiteSpace(correoDestino))
                 {
-                    await _emailService.SendComprobantePagoAsync(correoDestino, citaProcesada, model.TitularTarjeta);
+                    var citaFake = new CitasViewModel
+                    {
+                        Paciente = $"{nombresVal} {apellidosVal}",
+                        Especialidad = model.Especialidad,
+                        Medico = model.Medico,
+                        FechaHora = DateTime.Now,
+                        MontoAnticipo = model.MontoAnticipo,
+                        SaldoPendiente = model.SaldoPendiente
+                    };
+                    await _emailService.SendComprobantePagoAsync(correoDestino, citaFake, model.TitularTarjeta);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("[EmailService] No se pudo enviar el correo del comprobante: " + ex.Message);
+                Console.WriteLine("[EmailService] No se pudo enviar el correo: " + ex.Message);
             }
 
-            // 5. Responder exitosamente al cliente
             return Ok(new
             {
                 exito = true,
-                mensaje = "¡Pago procesado con éxito y cita confirmada!",
-                idCita = citaProcesada.Id,
-                cita = new
-                {
-                    id = citaProcesada.Id,
-                    paciente = citaProcesada.Paciente,
-                    especialidad = citaProcesada.Especialidad,
-                    medico = citaProcesada.Medico,
-                    fechaHora = citaProcesada.FechaHora.ToString("dd/MM/yyyy hh:mm tt"),
-                    anticipo = citaProcesada.MontoAnticipo,
-                    saldoPendiente = citaProcesada.SaldoPendiente,
-                    correo = correoDestino
-                },
+                mensaje = "¡Pago procesado y cita registrada con éxito!",
+                codigoExpediente = codigoExpedienteGenerado,
+                pacienteId = idPacienteGenerado,
                 redirectUrl = "/Account/Citas"
             });
         }
@@ -665,7 +669,6 @@ namespace ESFE.ClinicaWEB.Controllers
         [HttpGet] public IActionResult Consulta() => View();
         [HttpGet] public IActionResult Facturacion() => View("facturacion");
 
-        // POST: /Account/EnviarFacturaCorreo
         [HttpPost]
         public async Task<IActionResult> EnviarFacturaCorreo([FromBody] EnviarFacturaDto model)
         {
@@ -788,15 +791,19 @@ namespace ESFE.ClinicaWEB.Controllers
     {
         public int CitaId { get; set; }
         public string Paciente { get; set; } = string.Empty;
+        public string Nombres { get; set; } = string.Empty;
+        public string Apellidos { get; set; } = string.Empty;
+        public string Dui { get; set; } = string.Empty;
+        public string? Telefono { get; set; }
         public string Especialidad { get; set; } = string.Empty;
         public string Medico { get; set; } = string.Empty;
         public string Fecha { get; set; } = string.Empty;
         public string Hora { get; set; } = string.Empty;
         public string FechaHora { get; set; } = string.Empty;
         public string? Correo { get; set; }
-        public decimal PrecioTotal { get; set; } = 50.00m;
-        public decimal MontoAnticipo { get; set; } = 12.50m;
-        public decimal SaldoPendiente { get; set; } = 37.50m;
+        public decimal PrecioTotal { get; set; } = 25.00m;
+        public decimal MontoAnticipo { get; set; } = 6.25m;
+        public decimal SaldoPendiente { get; set; } = 18.75m;
         public string TitularTarjeta { get; set; } = string.Empty;
         public string NumeroTarjeta { get; set; } = string.Empty;
         public string Expiracion { get; set; } = string.Empty;

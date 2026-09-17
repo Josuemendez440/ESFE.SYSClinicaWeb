@@ -1,11 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using ESFE.ClinicaWEB.Models;
-using ESFE.ClinicaWEB.Services;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections.Generic;
 
 namespace ESFE.ClinicaWEB.Controllers
 {
@@ -13,100 +10,134 @@ namespace ESFE.ClinicaWEB.Controllers
     [ApiController]
     public class ExpedientesApiController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public ExpedientesApiController(ApplicationDbContext context)
+        public ExpedientesApiController(IConfiguration configuration)
         {
-            _context = context;
+            _configuration = configuration;
         }
 
         // GET: api/ExpedientesApi
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ExpedienteViewModel>>> GetExpedientes()
+        public IActionResult GetExpedientes()
         {
-            return await _context.Expedientes.OrderByDescending(e => e.Id).ToListAsync();
-        }
-
-        // GET: api/ExpedientesApi/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<ExpedienteViewModel>> GetExpediente(int id)
-        {
-            var expediente = await _context.Expedientes.FindAsync(id);
-
-            if (expediente == null)
-            {
-                return NotFound();
-            }
-
-            return expediente;
-        }
-
-        // PUT: api/ExpedientesApi/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutExpediente(int id, ExpedienteViewModel expediente)
-        {
-            if (id != expediente.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(expediente).State = EntityState.Modified;
+            var lista = new List<object>();
 
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ExpedienteExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                conn.Open();
 
-            return NoContent();
+                string query = @"
+                    SELECT 
+                        paciente_id,
+                        codigo_expediente,
+                        nombres,
+                        apellidos,
+                        dui_documento,
+                        telefono,
+                        fecha_nacimiento
+                    FROM dbo.Pacientes
+                    ORDER BY paciente_id DESC";
+
+                using var cmd = new SqlCommand(query, conn);
+                using var reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    string nombres = reader["nombres"]?.ToString() ?? "";
+                    string apellidos = reader["apellidos"]?.ToString() ?? "";
+
+                    lista.Add(new
+                    {
+                        id = reader["paciente_id"],
+                        paciente_id = reader["paciente_id"],
+                        codigoExpediente = reader["codigo_expediente"]?.ToString(),
+                        codigo_expediente = reader["codigo_expediente"]?.ToString(),
+                        nombres = nombres,
+                        apellidos = apellidos,
+                        nombreCompleto = $"{nombres} {apellidos}".Trim(),
+                        dui = reader["dui_documento"]?.ToString(),
+                        dui_documento = reader["dui_documento"]?.ToString(),
+                        telefono = reader["telefono"]?.ToString() ?? "Sin Teléfono",
+                        fechaNacimiento = reader["fecha_nacimiento"] != DBNull.Value ? Convert.ToDateTime(reader["fecha_nacimiento"]).ToString("yyyy-MM-dd") : null,
+                        estado = "En Espera"
+                    });
+                }
+
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al consultar pacientes: " + ex.Message });
+            }
         }
 
         // POST: api/ExpedientesApi
         [HttpPost]
-        public async Task<ActionResult<ExpedienteViewModel>> PostExpediente(ExpedienteViewModel expediente)
+        public IActionResult PostExpediente([FromBody] PacienteCrearDto model)
         {
-            _context.Expedientes.Add(expediente);
-            await _context.SaveChangesAsync();
+            if (model == null) return BadRequest("Datos no válidos.");
 
-            // Actualizar CodigoExpediente después de tener el Id autogenerado si no viene seteado
-            if (string.IsNullOrEmpty(expediente.CodigoExpediente))
+            try
             {
-                expediente.CodigoExpediente = $"EXP-{expediente.Id:D3}";
-                await _context.SaveChangesAsync();
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                string duiVal = !string.IsNullOrWhiteSpace(model.Dui) ? model.Dui.Trim() : (!string.IsNullOrWhiteSpace(model.Dui_documento) ? model.Dui_documento.Trim() : "00000000-0");
+
+                // Generar el código con la secuencia correlativa exacta (PAC-0008, PAC-0009, etc.)
+                string query = @"
+                    DECLARE @SiguienteId INT = (SELECT ISNULL(MAX(paciente_id), 0) + 1 FROM dbo.Pacientes);
+                    DECLARE @CodigoExp VARCHAR(20) = 'PAC-' + RIGHT('000' + CAST(@SiguienteId AS VARCHAR(10)), 4);
+
+                    INSERT INTO dbo.Pacientes (codigo_expediente, nombres, apellidos, dui_documento, telefono, fecha_nacimiento, fecha_creacion)
+                    VALUES (@CodigoExp, @nombres, @apellidos, @dui, @telefono, @fechaNac, GETDATE());
+
+                    SELECT SCOPE_IDENTITY() AS NuevoId, @CodigoExp AS CodigoGenerado;";
+
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@nombres", model.Nombres ?? "Paciente");
+                cmd.Parameters.AddWithValue("@apellidos", model.Apellidos ?? "General");
+                cmd.Parameters.AddWithValue("@dui", duiVal);
+                cmd.Parameters.AddWithValue("@telefono", (object?)model.Telefono ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@fechaNac", (object?)model.FechaNacimiento ?? DBNull.Value);
+
+                using var reader = cmd.ExecuteReader();
+                int newId = 0;
+                string codigoGenerado = "";
+
+                if (reader.Read())
+                {
+                    newId = Convert.ToInt32(reader["NuevoId"]);
+                    codigoGenerado = reader["CodigoGenerado"]?.ToString() ?? $"PAC-{newId:D4}";
+                }
+
+                return Ok(new
+                {
+                    id = newId,
+                    paciente_id = newId,
+                    codigoExpediente = codigoGenerado,
+                    nombres = model.Nombres,
+                    apellidos = model.Apellidos
+                });
             }
-
-            return CreatedAtAction("GetExpediente", new { id = expediente.Id }, expediente);
-        }
-
-        // DELETE: api/ExpedientesApi/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteExpediente(int id)
-        {
-            var expediente = await _context.Expedientes.FindAsync(id);
-            if (expediente == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                return StatusCode(500, new { mensaje = "Error al guardar el paciente: " + ex.Message });
             }
-
-            _context.Expedientes.Remove(expediente);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
+    }
 
-        private bool ExpedienteExists(int id)
-        {
-            return _context.Expedientes.Any(e => e.Id == id);
-        }
+    public class PacienteCrearDto
+    {
+        public string? Nombres { get; set; }
+        public string? Apellidos { get; set; }
+        public string? Dui { get; set; }
+        public string? Dui_documento { get; set; }
+        public string? Telefono { get; set; }
+        public DateTime? FechaNacimiento { get; set; }
     }
 }
