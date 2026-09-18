@@ -662,41 +662,7 @@ namespace ESFE.ClinicaWEB.Controllers
 
         [HttpGet] public IActionResult Expedientes() => View("expedientes");
         [HttpGet] public IActionResult Consulta() => View();
-        [HttpGet] public IActionResult Facturacion(int? id) => View("facturacion");
-
-        [HttpPut]
-        public async Task<IActionResult> ActualizarEstadoPaciente(int id, [FromBody] CambiarEstadoDto model)
-        {
-            if (model == null || string.IsNullOrWhiteSpace(model.Estado))
-            {
-                return BadRequest(new { exito = false, mensaje = "El estado ingresado no es válido." });
-            }
-
-            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
-
-            try
-            {
-                using var conn = new SqlConnection(connectionString);
-                await conn.OpenAsync();
-
-                string updateQuery = "UPDATE dbo.Pacientes SET estado = @estado WHERE paciente_id = @id";
-                using var cmd = new SqlCommand(updateQuery, conn);
-                cmd.Parameters.AddWithValue("@estado", model.Estado);
-                cmd.Parameters.AddWithValue("@id", id);
-
-                int filas = await cmd.ExecuteNonQueryAsync();
-                if (filas > 0)
-                {
-                    return Ok(new { exito = true, mensaje = "Estado actualizado exitosamente." });
-                }
-
-                return NotFound(new { exito = false, mensaje = "No se encontró el paciente seleccionado." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { exito = false, mensaje = "Error al actualizar estado en BD: " + ex.Message });
-            }
-        }
+        [HttpGet] public IActionResult Facturacion() => View("facturacion");
 
         [HttpPost]
         public async Task<IActionResult> EnviarFacturaCorreo([FromBody] EnviarFacturaDto model)
@@ -815,7 +781,6 @@ namespace ESFE.ClinicaWEB.Controllers
     public class SolicitudCorreoDto { public string Correo { get; set; } = string.Empty; }
     public class ValidarOtpDto { public string Correo { get; set; } = string.Empty; public string Codigo { get; set; } = string.Empty; }
     public class NuevaPasswordDto { public string Correo { get; set; } = string.Empty; public string TokenValidacion { get; set; } = string.Empty; public string NuevaContrasena { get; set; } = string.Empty; }
-    public class CambiarEstadoDto { public string Estado { get; set; } = string.Empty; }
 
     public class ConfirmarPagoDto
     {

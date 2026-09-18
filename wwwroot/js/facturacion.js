@@ -3,16 +3,37 @@ document.addEventListener("DOMContentLoaded", () => {
     const ULTIMO_FAC_KEY = "curavita_ultimo_fac_num";
     const fechaHoy = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+    function obtenerPacientesPendientesLocal() {
+        try {
+            return JSON.parse(localStorage.getItem("curavita_facturas_pendientes") || "[]");
+        } catch {
+            return [];
+        }
+    }
+
+    function removerPacienteFacturadoLocal(id) {
+        try {
+            let lista = JSON.parse(localStorage.getItem("curavita_facturas_pendientes") || "[]");
+            lista = lista.filter(x => String(x) !== String(id));
+            localStorage.setItem("curavita_facturas_pendientes", JSON.stringify(lista));
+        } catch { }
+    }
+
     async function obtenerFacturasPendientes() {
         try {
             const resp = await fetch("/api/ExpedientesApi");
             if (!resp.ok) return [];
             const expedientes = await resp.json();
 
-            // Facturados/Atendidos son los que contienen la palabra "factur" o "atendid"
+            const pendientesLocal = obtenerPacientesPendientesLocal();
+
+            // Muestra solo los pacientes con consulta médica finalizada o que fueron enviados desde Consulta
             const facturados = expedientes.filter(e => {
                 const est = (e.estado || "").toLowerCase();
-                return est.includes("factur") || est.includes("atendid");
+                const esFacturadoBD = est === "facturado" || est.includes("factur");
+                const esFacturadoLocal = pendientesLocal.includes(String(e.id));
+                const noEstaPagado = est !== "pagado";
+                return (esFacturadoBD || esFacturadoLocal) && noEstaPagado;
             });
 
             return facturados.map(e => {
@@ -290,6 +311,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 cambio = Math.max(0, recibido - total);
             }
 
+            if (btnProcesarPago) btnProcesarPago.disabled = true;
+
+            // Registrar liquidacion de pago en BD
+            try {
+                await fetch("/Account/ProcesarPagoFactura", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        pacienteId: parseInt(facturaSeleccionada.id, 10),
+                        montoTotal: total,
+                        metodoPago: metodo
+                    })
+                });
+            } catch (err) {
+                console.error("Error al registrar el pago en BD:", err);
+            }
+
+            // Eliminar de los pendientes en localStorage al ser cobrado exitosamente
+            removerPacienteFacturadoLocal(facturaSeleccionada.id);
+
             facturaPagadaActual = {
                 numeroFactura: numFactura,
                 paciente: facturaSeleccionada.paciente,
@@ -542,7 +583,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (btnSiguienteFactura) {
-        btnSiguienteFactura.addEventListener("click", () => {
+        btnSiguienteFactura.addEventListener("click", async () => {
             if (modalFacturaFinalizada) modalFacturaFinalizada.classList.add("hidden");
 
             facturaSeleccionada = null;
@@ -551,18 +592,19 @@ document.addEventListener("DOMContentLoaded", () => {
             if (formPago) formPago.classList.add("hidden");
             if (panelDetalleVacio) panelDetalleVacio.classList.remove("hidden");
 
-            renderListaFacturas();
+            // Se refresca la lista directamente desde la API
+            await renderListaFacturas();
         });
     }
 
     if (modalFacturaFinalizada) {
-        modalFacturaFinalizada.addEventListener("click", (e) => {
+        modalFacturaFinalizada.addEventListener("click", async (e) => {
             if (e.target === modalFacturaFinalizada) {
                 modalFacturaFinalizada.classList.add("hidden");
                 facturaSeleccionada = null;
                 if (formPago) formPago.classList.add("hidden");
                 if (panelDetalleVacio) panelDetalleVacio.classList.remove("hidden");
-                renderListaFacturas();
+                await renderListaFacturas();
             }
         });
     }

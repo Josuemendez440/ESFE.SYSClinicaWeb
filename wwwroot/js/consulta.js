@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function obtenerPacientesFinalizados() {
         try {
-            return JSON.parse(sessionStorage.getItem(FINALIZADOS_KEY) || "[]");
+            return JSON.parse(localStorage.getItem(FINALIZADOS_KEY) || "[]");
         } catch {
             return [];
         }
@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const lista = obtenerPacientesFinalizados();
         if (!lista.includes(String(id))) {
             lista.push(String(id));
-            sessionStorage.setItem(FINALIZADOS_KEY, JSON.stringify(lista));
+            localStorage.setItem(FINALIZADOS_KEY, JSON.stringify(lista));
         }
     }
 
@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const finalizados = obtenerPacientesFinalizados();
 
-            // Filtrar expedientes cuyo estado NO sea Facturado/Atendido y que no se hayan finalizado en esta sesión
+            // Filtrar expedientes cuyo estado NO sea Facturado/Atendido y que no se hayan finalizado localmente
             const enEspera = expedientes.filter(e => {
                 const est = (e.estado || "").toLowerCase();
                 const esAtendidoOFacturado = est.includes("factur") || est.includes("atendid");
@@ -367,8 +367,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const diag = diagCheck;
 
-            // 1. Marcar como finalizado en la sesión local
+            // 1. Marcar como finalizado en la persistencia local
             registrarPacienteFinalizado(pacienteSeleccionado.id);
+
+            // Guardar para facturación
+            const pendientesFac = JSON.parse(localStorage.getItem("curavita_facturas_pendientes") || "[]");
+            if (!pendientesFac.includes(String(pacienteSeleccionado.id))) {
+                pendientesFac.push(String(pacienteSeleccionado.id));
+                localStorage.setItem("curavita_facturas_pendientes", JSON.stringify(pendientesFac));
+            }
 
             // 2. Notificar al backend de SQL Server
             try {
@@ -377,7 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: { "Content-Type": "application/json" }
                 });
             } catch (err) {
-                Console.error("Error al actualizar estado en BD:", err);
+                console.error("Error al actualizar estado en BD:", err);
             }
 
             const numeroReceta = obtenerSiguienteNumeroReceta();
