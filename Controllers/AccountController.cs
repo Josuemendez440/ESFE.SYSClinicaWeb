@@ -546,6 +546,21 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
+                // Si el paciente ya existe, actualizar sus datos con los del formulario actual
+                if (idPacienteGenerado > 0 && !string.IsNullOrWhiteSpace(model.Nombres))
+                {
+                    string updateQuery = @"UPDATE dbo.Pacientes 
+                        SET nombres = @nombres, apellidos = @apellidos, telefono = @telefono
+                        WHERE paciente_id = @id";
+                    using var updateCmd = new SqlCommand(updateQuery, conn);
+                    updateCmd.Parameters.AddWithValue("@nombres", nombresVal);
+                    updateCmd.Parameters.AddWithValue("@apellidos", apellidosVal);
+                    updateCmd.Parameters.AddWithValue("@telefono", (object?)model.Telefono ?? DBNull.Value);
+                    updateCmd.Parameters.AddWithValue("@id", idPacienteGenerado);
+                    await updateCmd.ExecuteNonQueryAsync();
+                }
+
+
                 if (idPacienteGenerado == 0)
                 {
                     string insertPacienteQuery = @"
@@ -611,7 +626,11 @@ namespace ESFE.ClinicaWEB.Controllers
 
                 if (consultaIdGenerada > 0)
                 {
-                    decimal montoAnticipo = model.MontoAnticipo > 0 ? model.MontoAnticipo : 6.25m;
+                    // Usar el anticipo real del modelo (25% del precio de la especialidad)
+                    // Cardiología=$12.50, Pediatría=$8.75, Medicina General=$6.25
+                    decimal montoAnticipo = model.MontoAnticipo > 0 ? model.MontoAnticipo :
+                        (model.Especialidad == "Cardiología" ? 12.50m :
+                         model.Especialidad == "Pediatría" ? 8.75m : 6.25m);
                     string insertPagoQuery = @"
                         INSERT INTO dbo.Pagos (consulta_id, metodo_pago_id, estado_pago_id, monto_pagado, fecha_pago, cajero_id)
                         VALUES (@consulta_id, 2, 1, @monto_pagado, GETDATE(), @cajero_id)";

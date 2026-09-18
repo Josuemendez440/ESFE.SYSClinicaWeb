@@ -86,13 +86,25 @@ namespace ESFE.ClinicaWEB.Controllers
                     int tienePagoLiquidado = Convert.ToInt32(reader["tiene_pago_liquidado"]);
                     int totalPagos = Convert.ToInt32(reader["total_pagos"]);
                     decimal costoConsulta = Convert.ToDecimal(reader["costo_consulta"]);
-                    if (costoConsulta <= 0) costoConsulta = 25.00m;
-
                     decimal montoAnticipo = Convert.ToDecimal(reader["monto_anticipo"]);
                     if (montoAnticipo <= 0 && totalPagos == 1 && tienePagoLiquidado == 0)
                     {
                         montoAnticipo = Convert.ToDecimal(reader["total_pagado"]);
                     }
+
+                    // Si la especialidad viene de la BD del médico (medico_id era NULL al agendar),
+                    // reconstruir el costo total desde el anticipo pagado (anticipo = 25% del total)
+                    if (costoConsulta <= 0 || costoConsulta == 25.00m)
+                    {
+                        if (montoAnticipo > 0)
+                        {
+                            // anticipo * 4 = total (porque anticipo es siempre el 25%)
+                            decimal costoReconstruido = Math.Round(montoAnticipo * 4, 2);
+                            if (costoReconstruido > 25.00m) // solo sobreescribir si difiere del default
+                                costoConsulta = costoReconstruido;
+                        }
+                    }
+                    if (costoConsulta <= 0) costoConsulta = 25.00m;
 
                     bool tieneAnticipo = montoAnticipo > 0;
                     decimal saldoPendiente = Math.Max(0m, costoConsulta - montoAnticipo);

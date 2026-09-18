@@ -154,21 +154,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const paramId = urlParams.get("id");
 
         if (paramId) {
-            let encontrada = facturas.find(f => String(f.id) === String(paramId));
-            if (!encontrada) {
-                encontrada = {
-                    id: paramId,
-                    codigoExpediente: `PAC-00${paramId}`,
-                    paciente: "Paciente Curavita",
-                    especialidad: "Medicina General",
-                    monto: 18.75,
-                    costoTotal: 25.00,
-                    anticipoPagado: 6.25,
-                    pagoAnticipo: true
-                };
-                facturas.unshift(encontrada);
+            const encontrada = facturas.find(f => String(f.id) === String(paramId));
+            // Si no se encuentra en la BD, simplemente no se agrega un registro falso
+            if (encontrada) {
+                // Asegurarse que aparezca seleccionada al inicio
+                facturas = [encontrada, ...facturas.filter(f => String(f.id) !== String(paramId))];
             }
         }
+
 
         listaFacturasEl.innerHTML = "";
 
@@ -186,8 +179,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const esActivo = facturaSeleccionada && String(facturaSeleccionada.id) === String(factura.id);
             item.className = `factura-item ${esActivo ? "active" : ""}`;
 
-            const montoFormateado = `$${Number(factura.monto || 0).toFixed(2)}`;
-
+            // Usar los valores del API (costoTotal ya calculado correctamente desde el anticipo pagado)
+            const costoBase = Number(factura.costoTotal) || 25.00;
+            const anticipoPagado = factura.pagoAnticipo ? Number(factura.anticipoPagado || (costoBase * 0.25).toFixed(2)) : 0;
+            const saldoPendiente = Number((costoBase - anticipoPagado).toFixed(2));
+            const montoFormateado = `$${saldoPendiente.toFixed(2)}`;
+            
             item.innerHTML = `
                 <div class="factura-item-info">
                     <div class="factura-item-name">${factura.paciente}</div>
@@ -224,8 +221,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (lblCodigoFactura) lblCodigoFactura.textContent = factura.codigoExpediente || factura.id;
         if (lblEspecialidadFactura) lblEspecialidadFactura.textContent = factura.especialidad;
 
-        const saldo = Number(factura.monto || 0).toFixed(2);
-        if (montoPagarEl) montoPagarEl.textContent = `$${saldo}`;
+        // Usar los valores del API (costoTotal ya reconstruido correctamente desde el anticipo)
+        const costoBase = Number(factura.costoTotal) || 25.00;
+        const anticipoPagado = Number(factura.anticipoPagado) || (factura.pagoAnticipo ? Number((costoBase * 0.25).toFixed(2)) : 0);
+        const saldo = Number((costoBase - anticipoPagado).toFixed(2));
+        if (montoPagarEl) montoPagarEl.textContent = `$${saldo.toFixed(2)}`;
 
         const desgloseEl = document.getElementById("desgloseAnticipo");
         if (desgloseEl) {
@@ -233,15 +233,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 desgloseEl.innerHTML = `
                     <div class="desglose-row">
                         <span>Precio total de la consulta:</span>
-                        <span>$${Number(factura.costoTotal).toFixed(2)}</span>
+                        <span>$${costoBase.toFixed(2)}</span>
                     </div>
                     <div class="desglose-row desglose-anticipo">
                         <span>Anticipo pagado en línea (25%):</span>
-                        <span style="color:#0d9488;">- $${Number(factura.anticipoPagado).toFixed(2)}</span>
+                        <span style="color:#0d9488;">- $${anticipoPagado.toFixed(2)}</span>
                     </div>
                     <div class="desglose-row desglose-total">
                         <span><strong>Saldo pendiente a cobrar (75%):</strong></span>
-                        <span><strong>$${saldo}</strong></span>
+                        <span><strong>$${saldo.toFixed(2)}</strong></span>
                     </div>`;
                 desgloseEl.style.display = "block";
             } else {
