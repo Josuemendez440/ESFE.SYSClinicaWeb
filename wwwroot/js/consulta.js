@@ -1,34 +1,51 @@
+// Archivo: wwwroot/js/consulta.js
 document.addEventListener("DOMContentLoaded", () => {
-    const COLA_KEY = "curavita_cola_espera";
-    const FACTURAS_KEY = "curavita_facturas_pendientes";
-    const EXPEDIENTES_KEY = "curavita_expedientes";
     const RECETA_NUM_KEY = "curavita_ultimo_rec_num";
+    const FINALIZADOS_KEY = "curavita_pacientes_finalizados";
+
+    function obtenerPacientesFinalizados() {
+        try {
+            return JSON.parse(sessionStorage.getItem(FINALIZADOS_KEY) || "[]");
+        } catch {
+            return [];
+        }
+    }
+
+    function registrarPacienteFinalizado(id) {
+        if (!id) return;
+        const lista = obtenerPacientesFinalizados();
+        if (!lista.includes(String(id))) {
+            lista.push(String(id));
+            sessionStorage.setItem(FINALIZADOS_KEY, JSON.stringify(lista));
+        }
+    }
 
     async function obtenerColaEspera() {
         try {
             const resp = await fetch("/api/ExpedientesApi");
             if (!resp.ok) return [];
             const expedientes = await resp.json();
-            
-            // Cola de espera son los expedientes con estado "En Espera"
-            const enEspera = expedientes.filter(e => e.estado === "En Espera");
-            
+
+            const finalizados = obtenerPacientesFinalizados();
+
+            // Filtrar expedientes cuyo estado NO sea Facturado/Atendido y que no se hayan finalizado en esta sesión
+            const enEspera = expedientes.filter(e => {
+                const est = (e.estado || "").toLowerCase();
+                const esAtendidoOFacturado = est.includes("factur") || est.includes("atendid");
+                return !esAtendidoOFacturado && !finalizados.includes(String(e.id));
+            });
+
             return enEspera.map(e => ({
                 id: e.id,
                 codigoExpediente: e.codigoExpediente,
                 nombre: e.nombreCompleto || `${e.nombres} ${e.apellidos}`,
-                especialidad: e.especialidad,
-                medico: e.medico,
-                costo: e.costo
+                especialidad: e.especialidad || "Medicina General",
+                medico: e.medico || "Dr(a). Médico Tratante",
+                costo: e.costo || 25.00
             }));
         } catch {
             return [];
         }
-    }
-
-    // Ya no se usa localStorage para guardar cola
-    function guardarColaEspera(lista) {
-        // No-op
     }
 
     function obtenerSiguienteNumeroReceta() {
@@ -77,7 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const recetaPaciente = document.getElementById("recetaPaciente");
     const recetaExpediente = document.getElementById("recetaExpediente");
     const recetaEspecialidad = document.getElementById("recetaEspecialidad");
-    const recetaListaMedicamentos = document.getElementById("recetaListaMedicamentos");
     const recetaDiagTexto = document.getElementById("recetaDiagTexto");
     const btnCerrarReceta = document.getElementById("btnCerrarReceta");
     const btnPrintReceta = document.getElementById("btnPrintReceta");
@@ -99,7 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const tbodyReceta = document.getElementById("tbodyReceta");
     const btnFinalizarConsulta = document.getElementById("btnFinalizarConsulta");
 
-    // --- RENDERIZADO DE COLA DE ESPERA ---
     async function renderListaEspera() {
         if (!listaEspera) return;
         const cola = await obtenerColaEspera();
@@ -172,8 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (workspacePanel) workspacePanel.classList.remove("hidden");
 
         if (lblNombrePaciente) lblNombrePaciente.textContent = p.nombre;
-        if (lblExpediente) lblExpediente.textContent = p.id;
-        
+        if (lblExpediente) lblExpediente.textContent = p.codigoExpediente || p.id;
+
         let edadFinal = "35 años";
         if (p.edadEtiqueta) {
             edadFinal = p.edadEtiqueta;
@@ -187,23 +202,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (lblEdad) lblEdad.textContent = edadFinal;
 
-        // Limpiar errores visuales previos
         [inputPA, inputFC, inputTemp, inputPeso, txtDiagnostico, inputMedicamentoNombre, inputMedicamentoDosis].forEach(inp => {
             if (typeof limpiarError === "function") limpiarError(inp);
         });
 
-        // Campos de signos vitales SIEMPRE vacíos: el médico los ingresa manualmente
         if (inputPA) inputPA.value = "";
         if (inputFC) inputFC.value = "";
         if (inputTemp) inputTemp.value = "";
         if (inputPeso) inputPeso.value = "";
         if (txtDiagnostico) txtDiagnostico.value = "";
 
-        // Lista de medicamentos prescritos inicia vacía
         listaMedicamentosPrescritos = [];
         renderRecetaTable();
 
-        mostrarToast(`Expediente ${p.id} cargado en consulta clínica.`);
+        mostrarToast(`Expediente ${p.codigoExpediente || p.id} cargado en consulta clínica.`);
     }
 
     function renderRecetaTable() {
@@ -229,7 +241,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- AGREGAR MEDICAMENTO A LA RECETA CON VALIDACIÓN ---
     if (btnAddMedicamento && inputMedicamentoNombre && inputMedicamentoDosis) {
         btnAddMedicamento.addEventListener("click", () => {
             if (typeof limpiarError === "function") {
@@ -268,17 +279,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- FINALIZAR E IMPRIMIR RECETA FÍSICA CON VALIDACIONES CLÍNICAS COMPLETAS ---
     if (btnFinalizarConsulta) {
         btnFinalizarConsulta.addEventListener("click", async () => {
             if (!pacienteSeleccionado) return;
 
-            // Limpiar errores visuales anteriores
             [inputPA, inputFC, inputTemp, inputPeso, txtDiagnostico].forEach(inp => {
                 if (typeof limpiarError === "function") limpiarError(inp);
             });
 
-            // --- VALIDACIONES CLÍNICAS OBLIGATORIAS ---
             const paValCheck = inputPA ? inputPA.value.trim() : "";
             const fcValCheck = inputFC ? inputFC.value.trim() : "";
             const tempValCheck = inputTemp ? inputTemp.value.trim() : "";
@@ -287,7 +295,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let primerCampoConError = null;
 
-            // 1. Presión Arterial
             if (typeof validarPresionArterial === "function") {
                 const resPA = validarPresionArterial(paValCheck);
                 if (!resPA.valido) {
@@ -299,7 +306,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!primerCampoConError) primerCampoConError = inputPA;
             }
 
-            // 2. Frecuencia Cardíaca
             if (typeof validarFrecuenciaCardiaca === "function") {
                 const resFC = validarFrecuenciaCardiaca(fcValCheck);
                 if (!resFC.valido) {
@@ -311,7 +317,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!primerCampoConError) primerCampoConError = inputFC;
             }
 
-            // 3. Temperatura
             if (typeof validarTemperatura === "function") {
                 const resTemp = validarTemperatura(tempValCheck);
                 if (!resTemp.valido) {
@@ -323,7 +328,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!primerCampoConError) primerCampoConError = inputTemp;
             }
 
-            // 4. Peso
             if (typeof validarPeso === "function") {
                 const resPeso = validarPeso(pesoValCheck);
                 if (!resPeso.valido) {
@@ -335,7 +339,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!primerCampoConError) primerCampoConError = inputPeso;
             }
 
-            // 5. Diagnóstico Clínico
             if (typeof validarDiagnostico === "function") {
                 const resDiag = validarDiagnostico(diagCheck);
                 if (!resDiag.valido) {
@@ -353,7 +356,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 6. Medicamentos prescritos
             if (listaMedicamentosPrescritos.length === 0) {
                 if (typeof marcarError === "function") {
                     marcarError(inputMedicamentoNombre, "Debe prescribir al menos un medicamento.");
@@ -364,29 +366,20 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const diag = diagCheck;
-            const hoy = new Date();
-            const fechaHoy = hoy.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-            // 1. Obtener expediente desde la base de datos
+            // 1. Marcar como finalizado en la sesión local
+            registrarPacienteFinalizado(pacienteSeleccionado.id);
+
+            // 2. Notificar al backend de SQL Server
             try {
-                const resp = await fetch(`/api/ExpedientesApi/${pacienteSeleccionado.id}`);
-                if (resp.ok) {
-                    const expediente = await resp.json();
-                    
-                    // 2. Actualizar estado a "Facturado"
-                    expediente.estado = "Facturado";
-                    
-                    await fetch(`/api/ExpedientesApi/${pacienteSeleccionado.id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(expediente)
-                    });
-                }
+                await fetch(`/Account/FinalizarConsulta/${pacienteSeleccionado.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" }
+                });
             } catch (err) {
-                console.error("Error al transferir a facturación en BD:", err);
+                Console.error("Error al actualizar estado en BD:", err);
             }
 
-            // Generar número de receta correlativo oficial
             const numeroReceta = obtenerSiguienteNumeroReceta();
             const now = new Date();
             const horas = now.getHours();
@@ -400,12 +393,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const tempValor = inputTemp ? inputTemp.value.trim() : "";
             const pesoValor = inputPeso ? inputPeso.value.trim() : "";
 
-            // Guardar receta generada para imprimir
             recetaGeneradaActual = {
                 numeroReceta: numeroReceta,
                 fechaHora: fechaHoraStr,
                 paciente: pacienteSeleccionado.nombre,
-                codigo: pacienteSeleccionado.id,
+                codigo: pacienteSeleccionado.codigoExpediente || pacienteSeleccionado.id,
                 especialidad: pacienteSeleccionado.especialidad || "Medicina General",
                 medico: pacienteSeleccionado.medico || "Dr(a). Médico Tratante",
                 pa: paValor || "120/70",
@@ -416,7 +408,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 medicamentos: [...listaMedicamentosPrescritos]
             };
 
-            // 4. Cargar datos en el Modal de Receta Física
             const recetaCodigoDoc = document.getElementById("recetaCodigoDoc");
             if (recetaCodigoDoc) recetaCodigoDoc.textContent = numeroReceta;
             if (recetaFecha) recetaFecha.textContent = `Fecha: ${fechaHoraStr}`;
@@ -457,26 +448,30 @@ document.addEventListener("DOMContentLoaded", () => {
             const recetaMedicoFirma = document.getElementById("recetaMedicoFirma");
             if (recetaMedicoFirma) recetaMedicoFirma.textContent = pacienteSeleccionado.medico || "Dr. Roberto Gómez";
 
-            // 5. Mostrar Modal de Receta
             if (modalRecetaFisica) {
                 modalRecetaFisica.classList.remove("hidden");
             }
 
-            // 6. Notificación Toast global
             mostrarToast("Consulta médica finalizada con éxito. Expediente enviado al Módulo de Pago y Facturación.");
 
-            // Actualizar lista visual de cola
-            renderListaEspera();
+            await renderListaEspera();
         });
     }
 
-    // Modal Receta controles
     if (btnCerrarReceta && modalRecetaFisica) {
         btnCerrarReceta.addEventListener("click", () => {
             modalRecetaFisica.classList.add("hidden");
             if (emptyWorkspace) emptyWorkspace.classList.remove("hidden");
             if (workspacePanel) workspacePanel.classList.add("hidden");
+
+            const idPacienteFinalizado = pacienteSeleccionado ? pacienteSeleccionado.id : '';
             pacienteSeleccionado = null;
+
+            if (idPacienteFinalizado) {
+                window.location.href = `/Account/Facturacion?id=${idPacienteFinalizado}`;
+            } else {
+                window.location.href = `/Account/Facturacion`;
+            }
         });
     }
 
@@ -503,8 +498,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 : `<tr><td colspan="3" style="text-align:center;padding:16px;color:#94a3b8;font-style:italic;">No se prescribieron medicamentos en esta consulta.</td></tr>`;
 
             const vitalesHtml = [
-                recetaGeneradaActual.pa   ? `P.A: <strong>${recetaGeneradaActual.pa}</strong>` : null,
-                recetaGeneradaActual.fc   ? `F.C: <strong>${recetaGeneradaActual.fc} lpm</strong>` : null,
+                recetaGeneradaActual.pa ? `P.A: <strong>${recetaGeneradaActual.pa}</strong>` : null,
+                recetaGeneradaActual.fc ? `F.C: <strong>${recetaGeneradaActual.fc} lpm</strong>` : null,
                 recetaGeneradaActual.temp ? `Temp: <strong>${recetaGeneradaActual.temp} °C</strong>` : null,
                 recetaGeneradaActual.peso ? `Peso: <strong>${recetaGeneradaActual.peso} kg</strong>` : null
             ].filter(Boolean).join(" &nbsp;&bull;&nbsp; ");
@@ -566,7 +561,6 @@ document.addEventListener("DOMContentLoaded", () => {
 </head>
 <body>
 <div class="sheet">
-  <!-- Header -->
   <div class="brand-row">
     <div class="brand-info">
       <img src="/images/logo.png" style="width:55px;height:auto;object-fit:contain;" />
@@ -585,7 +579,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   <div class="divider"></div>
 
-  <!-- Datos del paciente -->
   <div class="info-grid">
     <div>
       <div class="label">Paciente</div>
@@ -603,11 +596,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   ${vitalesHtml ? `<div class="vitals-bar">${vitalesHtml}</div>` : ""}
 
-  <!-- Diagnóstico -->
   <div class="section-title">Diagnóstico Clínico</div>
   <div class="diag-box">${recetaGeneradaActual.diagnostico || "Sin observaciones adicionales."}</div>
 
-  <!-- Medicamentos -->
   <div class="section-title">Prescripción Farmacológica</div>
   <table class="med-table">
     <thead>
@@ -620,10 +611,9 @@ document.addEventListener("DOMContentLoaded", () => {
     <tbody>${rowsMeds}</tbody>
   </table>
 
-  <!-- Notas y Firma -->
   <div class="footer-row">
     <ul class="notes-list">
-      <li>&bull; Siga estrictamente la dosis y horarios prescritos.</li>
+      <li>&bull; Siga strictly la dosis y horarios prescritos.</li>
       <li>&bull; No suspenda el tratamiento sin previa indicación médica.</li>
       <li>&bull; En caso de reacciones adversas consulte a emergencias.</li>
     </ul>
@@ -634,7 +624,6 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
 
-  <!-- Footer -->
   <div class="doc-footer">
     <span>ESFE SYSCURAVITA — Sistema Integral de Gestión Hospitalaria</span>
     <span>Documento Médico Oficial &bull; Válido por 30 días</span>
@@ -649,11 +638,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Modal Historial
     if (btnOpenHistory && historyModal) {
         btnOpenHistory.addEventListener("click", () => {
             if (!pacienteSeleccionado) return;
-            if (historyModalCode) historyModalCode.textContent = `Código: ${pacienteSeleccionado.id}`;
+            if (historyModalCode) historyModalCode.textContent = `Código: ${pacienteSeleccionado.codigoExpediente || pacienteSeleccionado.id}`;
             if (historyModalBody) {
                 historyModalBody.innerHTML = `
                     <div class="history-item">
@@ -676,7 +664,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Modal Logout
     if (btnOpenLogout && logoutModal) {
         btnOpenLogout.addEventListener("click", () => logoutModal.classList.remove("hidden"));
     }
@@ -684,12 +671,10 @@ document.addEventListener("DOMContentLoaded", () => {
         btnCancelLogout.addEventListener("click", () => logoutModal.classList.add("hidden"));
     }
 
-    // Emergency Overlay
     if (btnCloseEmergency && emergencyOverlay) {
         btnCloseEmergency.addEventListener("click", () => emergencyOverlay.classList.add("hidden"));
     }
 
-    // Helper Toast
     function mostrarToast(mensaje, tipo = "success") {
         let container = document.getElementById("toastContainer");
         if (!container) {
@@ -716,13 +701,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 4000);
     }
 
-    // Enlazar limpieza automática de errores visuales al escribir
     [inputPA, inputFC, inputTemp, inputPeso, txtDiagnostico, inputMedicamentoNombre, inputMedicamentoDosis].forEach(inp => {
         if (inp && typeof enlazarLimpiezaEnInput === "function") {
             enlazarLimpiezaEnInput(inp);
         }
     });
 
-    // Inicializar
     renderListaEspera();
 });

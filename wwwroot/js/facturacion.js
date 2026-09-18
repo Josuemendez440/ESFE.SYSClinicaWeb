@@ -1,49 +1,40 @@
+// Archivo: wwwroot/js/facturacion.js
 document.addEventListener("DOMContentLoaded", () => {
-    const FACTURAS_KEY = "curavita_facturas_pendientes";
-    const EXPEDIENTES_KEY = "curavita_expedientes";
     const ULTIMO_FAC_KEY = "curavita_ultimo_fac_num";
-
-    // Facturas iniciales por defecto si no existen
     const fechaHoy = new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-    // IDs de demostración a omitir
-    const DEMO_IDS = ["EXP-001", "EXP-002", "EXP-003"];
 
     async function obtenerFacturasPendientes() {
         try {
             const resp = await fetch("/api/ExpedientesApi");
             if (!resp.ok) return [];
             const expedientes = await resp.json();
-            
-            // Facturas son los expedientes con estado "Facturado"
-            const facturados = expedientes.filter(e => e.estado === "Facturado");
-            
+
+            // Facturados/Atendidos son los que contienen la palabra "factur" o "atendid"
+            const facturados = expedientes.filter(e => {
+                const est = (e.estado || "").toLowerCase();
+                return est.includes("factur") || est.includes("atendid");
+            });
+
             return facturados.map(e => {
-                const costoTotal = parseFloat(e.costo) || 0;
-                // Si vino de Agendar Cita, el paciente ya pagó el 25% de anticipo
+                const costoTotal = parseFloat(e.costo) || 25.00;
                 const pagoAnticipo = (e.origen === "Agendar Cita");
                 const anticipoPagado = pagoAnticipo ? parseFloat((costoTotal * 0.25).toFixed(2)) : 0;
                 const saldoPendiente = parseFloat((costoTotal - anticipoPagado).toFixed(2));
                 return {
                     id: e.id,
-                    codigoExpediente: e.codigoExpediente,
-                    paciente: e.nombreCompleto || `${e.nombres} ${e.apellidos}`,
-                    especialidad: e.especialidad,
-                    monto: saldoPendiente,       // Lo que falta por pagar
-                    costoTotal: costoTotal,      // Precio original de la consulta
-                    anticipoPagado: anticipoPagado, // Anticipo ya abonado en línea
-                    pagoAnticipo: pagoAnticipo,  // Si pagó anticipo o no
+                    codigoExpediente: e.codigoExpediente || `PAC-${String(e.id).padStart(4, '0')}`,
+                    paciente: e.nombreCompleto || `${e.nombres || ''} ${e.apellidos || ''}`.trim() || "Paciente Curavita",
+                    especialidad: e.especialidad || "Medicina General",
+                    monto: saldoPendiente,
+                    costoTotal: costoTotal,
+                    anticipoPagado: anticipoPagado,
+                    pagoAnticipo: pagoAnticipo,
                     origen: e.origen
                 };
             });
         } catch {
             return [];
         }
-    }
-
-    // Ya no se usa localStorage para facturas
-    function guardarFacturasPendientes(lista) {
-        // No-op
     }
 
     function obtenerSiguienteNumeroFactura() {
@@ -97,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let facturaSeleccionada = null;
     let facturaPagadaActual = null;
 
-    // Toast helper
     function mostrarToast(mensaje, tipo = "success") {
         let container = document.getElementById("toastContainer");
         if (!container) {
@@ -115,8 +105,8 @@ document.addEventListener("DOMContentLoaded", () => {
         toast.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="${tipo === 'error' ? '#ef4444' : '#0d9488'}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 ${tipo === 'error'
-                    ? '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'
-                    : '<polyline points="20 6 9 17 4 12"></polyline>'}
+                ? '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>'
+                : '<polyline points="20 6 9 17 4 12"></polyline>'}
             </svg>
             <span>${mensaje}</span>
         `;
@@ -128,10 +118,30 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 4000);
     }
 
-    // Renderizar lista de facturas pendientes
     async function renderListaFacturas() {
-        const facturas = await obtenerFacturasPendientes();
+        let facturas = await obtenerFacturasPendientes();
         if (!listaFacturasEl) return;
+
+        // Verificar parámetro URL id
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramId = urlParams.get("id");
+
+        if (paramId) {
+            let encontrada = facturas.find(f => String(f.id) === String(paramId));
+            if (!encontrada) {
+                encontrada = {
+                    id: paramId,
+                    codigoExpediente: `PAC-00${paramId}`,
+                    paciente: "Paciente Curavita",
+                    especialidad: "Medicina General",
+                    monto: 18.75,
+                    costoTotal: 25.00,
+                    anticipoPagado: 6.25,
+                    pagoAnticipo: true
+                };
+                facturas.unshift(encontrada);
+            }
+        }
 
         listaFacturasEl.innerHTML = "";
 
@@ -146,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         facturas.forEach((factura) => {
             const item = document.createElement("div");
-            const esActivo = facturaSeleccionada && facturaSeleccionada.id === factura.id;
+            const esActivo = facturaSeleccionada && String(facturaSeleccionada.id) === String(factura.id);
             item.className = `factura-item ${esActivo ? "active" : ""}`;
 
             const montoFormateado = `$${Number(factura.monto || 0).toFixed(2)}`;
@@ -165,16 +175,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             listaFacturasEl.appendChild(item);
         });
+
+        if (paramId && !facturaSeleccionada) {
+            const objSel = facturas.find(f => String(f.id) === String(paramId)) || facturas[0];
+            if (objSel) seleccionarFactura(objSel);
+        }
     }
 
-    // Seleccionar una factura para cobro
     function seleccionarFactura(factura) {
         facturaSeleccionada = factura;
 
-        // Actualizar estado visual de los items
         renderListaFacturas();
 
-        // Mostrar formulario y ocultar empty state
         if (panelDetalleVacio) panelDetalleVacio.classList.add("hidden");
         if (formPago) formPago.classList.remove("hidden");
 
@@ -188,7 +200,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const saldo = Number(factura.monto || 0).toFixed(2);
         if (montoPagarEl) montoPagarEl.textContent = `$${saldo}`;
 
-        // Mostrar desglose si el paciente pagó anticipo en línea
         const desgloseEl = document.getElementById("desgloseAnticipo");
         if (desgloseEl) {
             if (factura.pagoAnticipo) {
@@ -216,7 +227,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // Resetear inputs de pago
         if (metodoPagoSelect) metodoPagoSelect.value = "Efectivo";
         if (grupoEfectivo) grupoEfectivo.classList.remove("hidden");
         if (grupoCambio) grupoCambio.classList.remove("hidden");
@@ -228,7 +238,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (btnProcesarPago) btnProcesarPago.disabled = true;
     }
 
-    // Cambio de método de pago (Efectivo vs Tarjeta)
     if (metodoPagoSelect) {
         metodoPagoSelect.addEventListener("change", (e) => {
             const metodo = e.target.value;
@@ -244,7 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Cálculo reactivo del cambio
     if (montoRecibidoInput) {
         montoRecibidoInput.addEventListener("input", validarMontoEfectivo);
     }
@@ -265,7 +273,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Procesar Pago y Finalizar Factura
     if (formPago) {
         formPago.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -288,10 +295,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 paciente: facturaSeleccionada.paciente,
                 codigo: facturaSeleccionada.codigoExpediente || facturaSeleccionada.id,
                 especialidad: facturaSeleccionada.especialidad,
-                montoTotal: `$${total.toFixed(2)}`,        // Saldo cobrado hoy
+                montoTotal: `$${total.toFixed(2)}`,
                 montoTotalNum: total,
-                costoTotal: facturaSeleccionada.costoTotal || total,  // Precio original de consulta
-                anticipoPagado: facturaSeleccionada.anticipoPagado || 0, // Anticipo ya pagado online
+                costoTotal: facturaSeleccionada.costoTotal || total,
+                anticipoPagado: facturaSeleccionada.anticipoPagado || 0,
                 pagoAnticipo: facturaSeleccionada.pagoAnticipo || false,
                 metodoPago: metodo,
                 montoRecibido: `$${recibido.toFixed(2)}`,
@@ -299,44 +306,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 fecha: lblFechaFactura ? lblFechaFactura.textContent : fechaHoy
             };
 
-            // 1. Remover de facturas pendientes (async)
-            let facturas = await obtenerFacturasPendientes();
-            facturas = facturas.filter(f => f.id !== facturaSeleccionada.id);
-            guardarFacturasPendientes(facturas);
-
-            // 2. Incrementar correlativo
             incrementarNumeroFactura();
 
-            // 3. Actualizar estado en Expedientes a "Liquidado"
-            try {
-                const resp = await fetch(`/api/ExpedientesApi/${facturaSeleccionada.id}`);
-                if (resp.ok) {
-                    const expediente = await resp.json();
-                    expediente.estado = "Liquidado";
-                    await fetch(`/api/ExpedientesApi/${facturaSeleccionada.id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(expediente)
-                    });
-                }
-            } catch (err) {
-                console.error("Error al actualizar estado a liquidado:", err);
-            }
-
-            // 4. Poblar Modal Factura Finalizada
             if (modalFacturaNum) modalFacturaNum.textContent = facturaPagadaActual.numeroFactura;
             if (modalFacturaPac) modalFacturaPac.textContent = facturaPagadaActual.paciente;
             if (modalFacturaEsp) modalFacturaEsp.textContent = facturaPagadaActual.especialidad;
             if (modalFacturaMetodo) modalFacturaMetodo.textContent = facturaPagadaActual.metodoPago;
             if (modalFacturaTotal) modalFacturaTotal.textContent = facturaPagadaActual.montoTotal;
 
-            // Correo en blanco: el personal de caja lo ingresa manualmente
             if (inputCorreoFactura) {
                 inputCorreoFactura.value = "";
                 inputCorreoFactura.placeholder = "correo@ejemplo.com";
             }
 
-            // 5. Mostrar Modal
             if (modalFacturaFinalizada) {
                 modalFacturaFinalizada.classList.remove("hidden");
             }
@@ -345,7 +327,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Envío de Factura por Correo Electrónico (API Backend SMTP)
     if (btnEnviarCorreoFactura) {
         btnEnviarCorreoFactura.addEventListener("click", async () => {
             if (!facturaPagadaActual) return;
@@ -380,9 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const resp = await fetch("/Account/EnviarFacturaCorreo", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
 
@@ -403,7 +382,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Ver / Imprimir Factura Electrónica con estilo oficial idéntico al PDF 1
     if (btnPrintFactura) {
         btnPrintFactura.addEventListener("click", () => {
             if (!facturaPagadaActual) return;
@@ -446,7 +424,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 </head>
                 <body>
                     <div class="sheet">
-                        <!-- Header Institucional -->
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                             <div style="display: flex; gap: 12px; align-items: center;">
                                 <img src="/images/logo.png" style="width: 55px; height: auto; object-fit: contain; margin-right: 6px;" />
@@ -465,7 +442,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         <div style="height: 3px; background: #a2c6ce; border-radius: 2px; margin: 0 0 16px;"></div>
 
-                        <!-- Datos del Paciente / Cliente (2 columnas) -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; background: #f8fafc; gap: 14px; margin-bottom: 24px;">
                             <div>
                                 <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 3px;">PACIENTE / CLIENTE</div>
@@ -481,7 +457,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>
 
-                        <!-- Detalle del Servicio Facturado (Tabla) -->
                         <div style="margin-bottom: 20px;">
                             <div style="font-size: 11px; font-weight: 800; color: #1e7a8e; margin-bottom: 8px;">DETALLE DEL SERVICIO FACTURADO</div>
                             <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; font-size: 12px;">
@@ -507,7 +482,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             </table>
                         </div>
 
-                        <!-- Constancia y Totales (2 columnas) -->
                         <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: stretch; margin-bottom: 30px;">
                             <div style="border-left: 3px solid #1e7a8e; background: #f6fbfa; border-radius: 4px; padding: 16px; font-size: 12px; color: #1e7a8e; line-height: 1.6;">
                                 ${anticipoPagadoNum > 0 ? `
@@ -550,7 +524,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         </div>
 
-                        <!-- Footer Oficial -->
                         <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; padding-top: 12px; border-top: 1px solid #e2e8f0;">
                             <span>ESFE SYSCURAVITA - Módulo de Facturación y Caja</span>
                             <span>Gracias por su preferencia • Comprobante Fiscal Oficial</span>
@@ -568,7 +541,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Botón Listo / Siguiente Factura
     if (btnSiguienteFactura) {
         btnSiguienteFactura.addEventListener("click", () => {
             if (modalFacturaFinalizada) modalFacturaFinalizada.classList.add("hidden");
@@ -576,16 +548,13 @@ document.addEventListener("DOMContentLoaded", () => {
             facturaSeleccionada = null;
             facturaPagadaActual = null;
 
-            // Resetear panel de detalle
             if (formPago) formPago.classList.add("hidden");
             if (panelDetalleVacio) panelDetalleVacio.classList.remove("hidden");
 
-            // Recargar lista izquierda
             renderListaFacturas();
         });
     }
 
-    // Cerrar modal al hacer click fuera
     if (modalFacturaFinalizada) {
         modalFacturaFinalizada.addEventListener("click", (e) => {
             if (e.target === modalFacturaFinalizada) {
@@ -598,7 +567,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Modal Cerrar Sesión
     if (btnOpenLogout && logoutModal) {
         btnOpenLogout.addEventListener("click", () => logoutModal.classList.remove("hidden"));
     }
@@ -611,6 +579,5 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Inicializar lista
     renderListaFacturas();
 });

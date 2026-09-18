@@ -74,6 +74,60 @@ namespace ESFE.ClinicaWEB.Controllers
             }
         }
 
+        // GET: api/ExpedientesApi/5
+        [HttpGet("{id}")]
+        public IActionResult GetExpedienteById(int id)
+        {
+            try
+            {
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                string query = @"
+                    SELECT 
+                        paciente_id,
+                        codigo_expediente,
+                        nombres,
+                        apellidos,
+                        dui_documento,
+                        telefono,
+                        fecha_nacimiento
+                    FROM dbo.Pacientes
+                    WHERE paciente_id = @id";
+
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", id);
+                using var reader = cmd.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    string nombres = reader["nombres"]?.ToString() ?? "";
+                    string apellidos = reader["apellidos"]?.ToString() ?? "";
+
+                    return Ok(new
+                    {
+                        id = reader["paciente_id"],
+                        paciente_id = reader["paciente_id"],
+                        codigoExpediente = reader["codigo_expediente"]?.ToString(),
+                        nombres = nombres,
+                        apellidos = apellidos,
+                        nombreCompleto = $"{nombres} {apellidos}".Trim(),
+                        dui = reader["dui_documento"]?.ToString(),
+                        telefono = reader["telefono"]?.ToString(),
+                        fechaNacimiento = reader["fecha_nacimiento"] != DBNull.Value ? Convert.ToDateTime(reader["fecha_nacimiento"]).ToString("yyyy-MM-dd") : null,
+                        estado = "En Espera"
+                    });
+                }
+
+                return NotFound(new { mensaje = "Paciente no encontrado." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al obtener el expediente: " + ex.Message });
+            }
+        }
+
         // POST: api/ExpedientesApi
         [HttpPost]
         public IActionResult PostExpediente([FromBody] PacienteCrearDto model)
@@ -88,7 +142,6 @@ namespace ESFE.ClinicaWEB.Controllers
 
                 string duiVal = !string.IsNullOrWhiteSpace(model.Dui) ? model.Dui.Trim() : (!string.IsNullOrWhiteSpace(model.Dui_documento) ? model.Dui_documento.Trim() : "00000000-0");
 
-                // Generar el código con la secuencia correlativa exacta (PAC-0008, PAC-0009, etc.)
                 string query = @"
                     DECLARE @SiguienteId INT = (SELECT ISNULL(MAX(paciente_id), 0) + 1 FROM dbo.Pacientes);
                     DECLARE @CodigoExp VARCHAR(20) = 'PAC-' + RIGHT('000' + CAST(@SiguienteId AS VARCHAR(10)), 4);
@@ -129,6 +182,31 @@ namespace ESFE.ClinicaWEB.Controllers
                 return StatusCode(500, new { mensaje = "Error al guardar el paciente: " + ex.Message });
             }
         }
+
+        // PUT: api/ExpedientesApi/5
+        [HttpPut("{id}")]
+        public IActionResult PutExpediente(int id, [FromBody] PacienteEstadoDto model)
+        {
+            try
+            {
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                string query = "SELECT COUNT(1) FROM dbo.Pacientes WHERE paciente_id = @id";
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", id);
+
+                int existe = Convert.ToInt32(cmd.ExecuteScalar());
+                if (existe == 0) return NotFound(new { mensaje = "El expediente no existe." });
+
+                return Ok(new { exito = true, mensaje = "Expediente actualizado exitosamente." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al actualizar el expediente: " + ex.Message });
+            }
+        }
     }
 
     public class PacienteCrearDto
@@ -139,5 +217,10 @@ namespace ESFE.ClinicaWEB.Controllers
         public string? Dui_documento { get; set; }
         public string? Telefono { get; set; }
         public DateTime? FechaNacimiento { get; set; }
+    }
+
+    public class PacienteEstadoDto
+    {
+        public string? Estado { get; set; }
     }
 }

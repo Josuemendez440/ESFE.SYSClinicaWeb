@@ -1,21 +1,35 @@
-*,
-*::before,
-*::after,
-body,
-button,
-input,
-select,
-textarea,
-table,
-th,
-td {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
+    *,
+    *::before,
+    *::after,
+    body,
+    button,
+    input,
+    select,
+    textarea,
+    table,
+    th,
+    td {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+/* Prevención de desalineación/distorsión al abrir Modales o SweetAlerts */
 html {
     font-size: 14.5px;
     zoom: 0.88;
     -webkit-text-size-adjust: 100%;
+    overflow-y: scroll; /* Reserva espacio para la barra de desplazamiento permanente */
+}
+
+body.modal-open,
+body.swal2-shown {
+    padding-right: 0 !important; /* Invalida el padding inyectado por modales */
+    overflow: hidden;
 }
 
 @media (min-width: 1600px) {
@@ -80,13 +94,13 @@ body {
     letter-spacing: -0.3px;
 }
 
-.brand svg, .sidebar-brand svg {
-    width: 24px;
-    height: 24px;
-    color: #22c55e;
-    stroke: #22c55e;
-    flex-shrink: 0;
-}
+    .brand svg, .sidebar-brand svg {
+        width: 24px;
+        height: 24px;
+        color: #22c55e;
+        stroke: #22c55e;
+        flex-shrink: 0;
+    }
 
 .nav-menu, .sidebar-menu {
     list-style: none;
@@ -108,40 +122,40 @@ body {
     font-weight: 500;
     font-size: 13.5px;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.nav-item svg, .menu-item a svg {
-    width: 18px;
-    height: 18px;
-    stroke: currentColor;
-    flex-shrink: 0;
-}
+    .nav-item svg, .menu-item a svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        flex-shrink: 0;
+    }
 
-.nav-item span, .menu-item a span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+    .nav-item span, .menu-item a span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-.nav-item:hover, .menu-item a:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #f8fafc;
-}
+    .nav-item:hover, .menu-item a:hover {
+        background-color: rgba(255, 255, 255, 0.06);
+        color: #f8fafc;
+    }
 
-.nav-item.active, .menu-item.active a {
-    background-color: #134e5e;
-    color: #ffffff;
-    font-weight: 600;
-    box-shadow: 0 2px 6px rgba(19, 78, 94, 0.35);
-}
+    .nav-item.active, .menu-item.active a {
+        background-color: #134e5e;
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(19, 78, 94, 0.35);
+    }
 
-.nav-item.active svg, .menu-item.active a svg {
-    stroke: #38bdf8;
-}
+        .nav-item.active svg, .menu-item.active a svg {
+            stroke: #38bdf8;
+        }
 
 .btn-accept-action {
     background-color: var(--primary);
@@ -155,9 +169,9 @@ body {
     transition: background-color 0.2s ease;
 }
 
-.btn-accept-action:hover {
-    background-color: var(--primary-dark);
-}
+    .btn-accept-action:hover {
+        background-color: var(--primary-dark);
+    }
 
 .sidebar-footer {
     padding-top: 12px;
@@ -181,17 +195,17 @@ body {
     transition: all 0.2s ease;
 }
 
-.btn-logout:hover {
-    background-color: rgba(225, 29, 72, 0.12);
-    color: #f43f5e;
-}
+    .btn-logout:hover {
+        background-color: rgba(225, 29, 72, 0.12);
+        color: #f43f5e;
+    }
 
-.btn-logout svg {
-    width: 18px;
-    height: 18px;
-    stroke: currentColor;
-    flex-shrink: 0;
-}
+    .btn-logout svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        flex-shrink: 0;
+    }
 
 /* Main Content Structure */
 .main-content {
@@ -202,7 +216,7 @@ body {
     grid-template-columns: 290px 1fr;
     gap: 20px;
     align-items: start;
-    max-width: calc(100vw - 250px);
+    width: calc(100% - 250px);
 }
 
 /* Panel Pacientes en Espera */
@@ -245,12 +259,12 @@ body {
     transition: all 0.2s ease;
 }
 
-.queue-item:hover,
-.queue-item.active {
-    background-color: var(--primary-light);
-    border-color: #134e5e;
-    font-weight: 700;
-}
+    .queue-item:hover,
+    .queue-item.active {
+        background-color: var(--primary-light);
+        border-color: #134e5e;
+        font-weight: 700;
+    }
 
 .queue-item-info {
     display: flex;
@@ -302,10 +316,10 @@ body {
     margin-bottom: 20px;
 }
 
-.no-selection-icon svg {
-    width: 32px;
-    height: 32px;
-}
+    .no-selection-icon svg {
+        width: 32px;
+        height: 32px;
+    }
 
 .no-selection-card h2 {
     font-size: 22px;
@@ -337,11 +351,11 @@ body {
     margin-bottom: 20px;
 }
 
-.patient-card-header h2 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-main);
-}
+    .patient-card-header h2 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
 
 .patient-meta {
     color: var(--text-muted);
@@ -349,9 +363,9 @@ body {
     margin-top: 4px;
 }
 
-.patient-meta b {
-    color: var(--text-main);
-}
+    .patient-meta b {
+        color: var(--text-main);
+    }
 
 .btn-history {
     display: inline-flex;
@@ -369,16 +383,16 @@ body {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.btn-history:hover {
-    background: #f0fdfa;
-    border-color: #0d9488;
-    color: #0d9488;
-}
+    .btn-history:hover {
+        background: #f0fdfa;
+        border-color: #0d9488;
+        color: #0d9488;
+    }
 
-.btn-history svg {
-    width: 16px;
-    height: 16px;
-}
+    .btn-history svg {
+        width: 16px;
+        height: 16px;
+    }
 
 /* Signos Vitales */
 .vitals-grid {
@@ -399,18 +413,18 @@ body {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.vital-box:hover {
-    background: #e2eff3;
-    border-color: #b7d5e1;
-}
+    .vital-box:hover {
+        background: #e2eff3;
+        border-color: #b7d5e1;
+    }
 
-.vital-box span {
-    font-size: 11px;
-    font-weight: 800;
-    color: #134e5e;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-}
+    .vital-box span {
+        font-size: 11px;
+        font-weight: 800;
+        color: #134e5e;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
 
 .vital-input-wrapper {
     display: flex;
@@ -418,30 +432,30 @@ body {
     gap: 8px;
 }
 
-.vital-input-wrapper .form-control {
-    width: 80px;
-    padding: 7px 10px;
-    background: #ffffff;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 700;
-    color: #0f172a;
-    text-align: center;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
+    .vital-input-wrapper .form-control {
+        width: 80px;
+        padding: 7px 10px;
+        background: #ffffff;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        color: #0f172a;
+        text-align: center;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
 
-.vital-input-wrapper .form-control:focus {
-    border-color: #0d9488;
-    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18);
-    background: #ffffff;
-}
+        .vital-input-wrapper .form-control:focus {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.18);
+            background: #ffffff;
+        }
 
-.vital-input-wrapper small {
-    font-size: 13px;
-    font-weight: 700;
-    color: #475569;
-}
+    .vital-input-wrapper small {
+        font-size: 13px;
+        font-weight: 700;
+        color: #475569;
+    }
 
 /* Controles de Formulario */
 .form-control {
@@ -456,11 +470,11 @@ body {
     transition: all 0.2s ease;
 }
 
-.form-control:focus {
-    border-color: #0d9488;
-    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
-    background: #ffffff;
-}
+    .form-control:focus {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        background: #ffffff;
+    }
 
 textarea.form-control {
     resize: vertical;
@@ -522,15 +536,15 @@ textarea.form-control {
     box-shadow: 0 2px 6px rgba(19, 78, 94, 0.2);
 }
 
-.btn-action-add:hover {
-    background: #0d3844;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(19, 78, 94, 0.28);
-}
+    .btn-action-add:hover {
+        background: #0d3844;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(19, 78, 94, 0.28);
+    }
 
-.btn-action-add:active {
-    transform: translateY(0);
-}
+    .btn-action-add:active {
+        transform: translateY(0);
+    }
 
 .recipe-table {
     width: 100%;
@@ -538,41 +552,47 @@ textarea.form-control {
     margin-bottom: 20px;
 }
 
-.recipe-table th {
-    background: #f8fafc;
-    text-align: left;
-    padding: 12px 16px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-    text-transform: uppercase;
-}
+    .recipe-table th {
+        background: #f8fafc;
+        text-align: left;
+        padding: 12px 16px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+        text-transform: uppercase;
+    }
 
-.recipe-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-}
+    .recipe-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        font-size: 14px;
+    }
 
 .text-center-col {
     text-align: center;
     width: 80px;
 }
 
+/* Botón estilizado para el icono de la papelera */
 .btn-delete-row {
     background: transparent;
     border: none;
-    color: var(--danger);
+    color: #64748b;
     cursor: pointer;
-    font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 4px;
+    font-size: 16px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.btn-delete-row:hover {
-    background-color: #fef2f2;
-}
+    .btn-delete-row:hover {
+        background-color: #fef2f2;
+        color: #ef4444;
+    }
 
 .btn-print {
     width: 100%;
@@ -587,9 +607,9 @@ textarea.form-control {
     transition: background 0.2s;
 }
 
-.btn-print:hover {
-    background: var(--primary-dark);
-}
+    .btn-print:hover {
+        background: var(--primary-dark);
+    }
 
 /* Modales & Overlays */
 .modal-overlay,
@@ -597,8 +617,8 @@ textarea.form-control {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     background-color: rgba(11, 29, 40, 0.65);
     backdrop-filter: blur(4px);
     display: flex;
@@ -631,19 +651,19 @@ textarea.form-control {
     margin-bottom: 16px;
 }
 
-.modal-icon svg {
-    width: 28px;
-    height: 28px;
-    stroke: #ef4444;
-}
+    .modal-icon svg {
+        width: 28px;
+        height: 28px;
+        stroke: #ef4444;
+    }
 
-.modal-icon.icon-primary {
-    background-color: var(--primary-light);
-}
+    .modal-icon.icon-primary {
+        background-color: var(--primary-light);
+    }
 
-.modal-icon.icon-primary svg {
-    stroke: var(--primary);
-}
+        .modal-icon.icon-primary svg {
+            stroke: var(--primary);
+        }
 
 .modal-title {
     font-size: 20px;
@@ -695,13 +715,13 @@ textarea.form-control {
     cursor: pointer;
 }
 
-.btn-modal-confirm.btn-primary-bg {
-    background-color: var(--primary);
-}
+    .btn-modal-confirm.btn-primary-bg {
+        background-color: var(--primary);
+    }
 
-.btn-modal-confirm.btn-primary-bg:hover {
-    background-color: var(--primary-dark);
-}
+        .btn-modal-confirm.btn-primary-bg:hover {
+            background-color: var(--primary-dark);
+        }
 
 /* Emergency Popup */
 .emergency-popup {
@@ -715,26 +735,26 @@ textarea.form-control {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
 }
 
-.emergency-popup svg {
-    width: 48px;
-    height: 48px;
-    stroke: var(--danger);
-    margin-bottom: 12px;
-}
+    .emergency-popup svg {
+        width: 48px;
+        height: 48px;
+        stroke: var(--danger);
+        margin-bottom: 12px;
+    }
 
-.emergency-popup h2 {
-    color: var(--danger);
-    font-size: 20px;
-    font-weight: 800;
-    margin-bottom: 12px;
-}
+    .emergency-popup h2 {
+        color: var(--danger);
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 12px;
+    }
 
-.emergency-popup p {
-    font-size: 14px;
-    color: var(--text-main);
-    line-height: 1.6;
-    margin-bottom: 24px;
-}
+    .emergency-popup p {
+        font-size: 14px;
+        color: var(--text-main);
+        line-height: 1.6;
+        margin-bottom: 24px;
+    }
 
 .btn-close-emergency {
     width: 100%;
@@ -885,13 +905,13 @@ textarea.form-control {
     border: 1px solid #e2e8f0;
 }
 
-.receta-patient-info span {
-    color: #64748b;
-}
+    .receta-patient-info span {
+        color: #64748b;
+    }
 
-.receta-patient-info strong {
-    color: #1e293b;
-}
+    .receta-patient-info strong {
+        color: #1e293b;
+    }
 
 .receta-body h4 {
     font-size: 14px;
@@ -917,15 +937,15 @@ textarea.form-control {
     font-size: 13px;
 }
 
-.receta-med-item strong {
-    color: #134e4a;
-    display: block;
-}
+    .receta-med-item strong {
+        color: #134e4a;
+        display: block;
+    }
 
-.receta-med-item span {
-    color: #475569;
-    font-size: 12px;
-}
+    .receta-med-item span {
+        color: #475569;
+        font-size: 12px;
+    }
 
 .receta-diagnostico-box {
     background-color: #fffbeb;
@@ -936,18 +956,18 @@ textarea.form-control {
     margin-bottom: 20px;
 }
 
-.receta-diagnostico-box label {
-    font-weight: 700;
-    color: #92400e;
-    display: block;
-    margin-bottom: 4px;
-}
+    .receta-diagnostico-box label {
+        font-weight: 700;
+        color: #92400e;
+        display: block;
+        margin-bottom: 4px;
+    }
 
-.receta-diagnostico-box p {
-    color: #78350f;
-    margin: 0;
-    line-height: 1.4;
-}
+    .receta-diagnostico-box p {
+        color: #78350f;
+        margin: 0;
+        line-height: 1.4;
+    }
 
 .receta-footer {
     display: flex;
@@ -961,16 +981,16 @@ textarea.form-control {
     width: 180px;
 }
 
-.firma-linea .linea {
-    border-top: 1px solid #94a3b8;
-    margin-bottom: 4px;
-}
+    .firma-linea .linea {
+        border-top: 1px solid #94a3b8;
+        margin-bottom: 4px;
+    }
 
-.firma-linea p {
-    font-size: 11px;
-    color: #64748b;
-    margin: 0;
-}
+    .firma-linea p {
+        font-size: 11px;
+        color: #64748b;
+        margin: 0;
+    }
 
 /* Toast Container */
 .toast-container {
@@ -1003,17 +1023,17 @@ textarea.form-control {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-.toast-item.toast-fadeout {
-    opacity: 0;
-    transform: translateY(-8px);
-}
+    .toast-item.toast-fadeout {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
 
-.toast-item svg {
-    width: 20px;
-    height: 20px;
-    color: #10b981;
-    flex-shrink: 0;
-}
+    .toast-item svg {
+        width: 20px;
+        height: 20px;
+        color: #10b981;
+        flex-shrink: 0;
+    }
 
 @keyframes toastSlideIn {
     from {

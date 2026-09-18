@@ -1,3 +1,4 @@
+@* Archivo: Views/Account/Consulta.cshtml *@
 @{
     Layout = null;
     ViewData["Title"] = "Consulta Médica - Curavita";
@@ -10,7 +11,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="~/css/consulta.css?v=1.0" asp-append-version="true" />
+    <!-- Carga de CDN de Font Awesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="~/css/consulta.css?v=1.1" asp-append-version="true" />
 </head>
 <body>
 
@@ -18,7 +21,7 @@
     <div class="emergency-overlay hidden" id="emergencyOverlay">
         <div class="emergency-popup">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0-3.42 0z"></path>
                 <line x1="12" y1="9" x2="12" y2="13"></line>
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
@@ -242,10 +245,10 @@
         </main>
     </div>
 
-    <!-- Modal Receta Física Imprimible con estilo oficial de PDF 2 -->
+    <!-- Modal Receta Física Imprimible -->
     <div id="modalRecetaFisica" class="modal-overlay hidden">
         <div class="modal-card modal-receta-card" style="max-width: 680px; width: 95%; background: #ffffff; border-radius: 12px; padding: 28px; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            
+
             <!-- Encabezado Institucional -->
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                 <div style="display: flex; gap: 12px; align-items: center;">

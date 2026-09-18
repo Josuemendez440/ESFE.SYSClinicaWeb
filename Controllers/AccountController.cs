@@ -1,3 +1,4 @@
+// Archivo: Controllers/AccountController.cs
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -209,7 +210,7 @@ namespace ESFE.ClinicaWEB.Controllers
                 }
 
                 int rolClienteId = 5;
-                string getRolQuery = "SELECT rol_id FROM dbo.Roles WHERE LOWER(nombre_rol) = 'cliente'";
+                string getRolQuery = "SELECT rol_id FROM dbo.Roles WHERE LOWER(nombre_rol) IN ('cliente', 'paciente')";
                 using (var rolCmd = new SqlCommand(getRolQuery, conn))
                 {
                     var result = await rolCmd.ExecuteScalarAsync();
@@ -527,7 +528,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 using var conn = new SqlConnection(connectionString);
                 await conn.OpenAsync();
 
-                // 1. Buscar o registrar paciente
                 string checkQuery = "SELECT paciente_id, codigo_expediente FROM dbo.Pacientes WHERE dui_documento = @dui";
                 using (var checkCmd = new SqlCommand(checkQuery, conn))
                 {
@@ -565,7 +565,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
-                // 2. Parsear fecha de la consulta
                 DateTime fechaCitaParsed = DateTime.Now;
                 if (!string.IsNullOrWhiteSpace(model.FechaHora) && DateTime.TryParse(model.FechaHora, out var dtParsed))
                 {
@@ -580,7 +579,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
-                // Obtener ID de un usuario activo para recepcionista/registrador
                 int recepcionistaId = 1;
                 using (var recepCmd = new SqlCommand("SELECT TOP 1 usuario_id FROM dbo.Usuarios WHERE estado = 1 ORDER BY usuario_id ASC", conn))
                 {
@@ -588,7 +586,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     if (resRecep != null && resRecep != DBNull.Value) recepcionistaId = Convert.ToInt32(resRecep);
                 }
 
-                // 3. Registrar la consulta en dbo.Consultas
                 string insertConsultaQuery = @"
                     INSERT INTO dbo.Consultas 
                         (paciente_id, medico_id, recepcionista_id, fecha_consulta, tipo_atencion_id, estado_consulta_id, es_emergencia)
@@ -606,7 +603,6 @@ namespace ESFE.ClinicaWEB.Controllers
                     if (resConsulta != null) consultaIdGenerada = Convert.ToInt32(resConsulta);
                 }
 
-                // 4. Registrar el Pago en dbo.Pagos
                 if (consultaIdGenerada > 0)
                 {
                     decimal montoAnticipo = model.MontoAnticipo > 0 ? model.MontoAnticipo : 6.25m;
@@ -627,7 +623,6 @@ namespace ESFE.ClinicaWEB.Controllers
                 return StatusCode(500, new { exito = false, mensaje = "Error al guardar en la base de datos SQL Server: " + ex.Message });
             }
 
-            // 5. Enviar comprobante por correo
             string correoDestino = model.Correo?.Trim() ?? "";
             if (string.IsNullOrWhiteSpace(correoDestino))
             {
@@ -667,7 +662,41 @@ namespace ESFE.ClinicaWEB.Controllers
 
         [HttpGet] public IActionResult Expedientes() => View("expedientes");
         [HttpGet] public IActionResult Consulta() => View();
-        [HttpGet] public IActionResult Facturacion() => View("facturacion");
+        [HttpGet] public IActionResult Facturacion(int? id) => View("facturacion");
+
+        [HttpPut]
+        public async Task<IActionResult> ActualizarEstadoPaciente(int id, [FromBody] CambiarEstadoDto model)
+        {
+            if (model == null || string.IsNullOrWhiteSpace(model.Estado))
+            {
+                return BadRequest(new { exito = false, mensaje = "El estado ingresado no es válido." });
+            }
+
+            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                string updateQuery = "UPDATE dbo.Pacientes SET estado = @estado WHERE paciente_id = @id";
+                using var cmd = new SqlCommand(updateQuery, conn);
+                cmd.Parameters.AddWithValue("@estado", model.Estado);
+                cmd.Parameters.AddWithValue("@id", id);
+
+                int filas = await cmd.ExecuteNonQueryAsync();
+                if (filas > 0)
+                {
+                    return Ok(new { exito = true, mensaje = "Estado actualizado exitosamente." });
+                }
+
+                return NotFound(new { exito = false, mensaje = "No se encontró el paciente seleccionado." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { exito = false, mensaje = "Error al actualizar estado en BD: " + ex.Message });
+            }
+        }
 
         [HttpPost]
         public async Task<IActionResult> EnviarFacturaCorreo([FromBody] EnviarFacturaDto model)
@@ -786,6 +815,7 @@ namespace ESFE.ClinicaWEB.Controllers
     public class SolicitudCorreoDto { public string Correo { get; set; } = string.Empty; }
     public class ValidarOtpDto { public string Correo { get; set; } = string.Empty; public string Codigo { get; set; } = string.Empty; }
     public class NuevaPasswordDto { public string Correo { get; set; } = string.Empty; public string TokenValidacion { get; set; } = string.Empty; public string NuevaContrasena { get; set; } = string.Empty; }
+    public class CambiarEstadoDto { public string Estado { get; set; } = string.Empty; }
 
     public class ConfirmarPagoDto
     {
