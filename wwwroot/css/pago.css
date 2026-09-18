@@ -1,4 +1,4 @@
-﻿* {
+* {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -9,9 +9,11 @@ body {
     background-color: #f4f7f6;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: 100vh;
-    padding: 20px;
+    padding: 40px 20px;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 svg {
@@ -21,23 +23,24 @@ svg {
 }
 
 .checkout-container {
-    display: flex;
-    gap: 24px;
-    max-width: 960px;
+    display: grid;
+    grid-template-columns: minmax(320px, 390px) minmax(380px, 510px);
+    gap: 28px;
+    max-width: 950px;
     width: 100%;
-    align-items: flex-start;
+    margin: 0 auto;
+    align-items: stretch;
 }
 
 /* Resumen Cita */
 .summary-card {
-    flex: 1;
     background: #ffffff;
     border-radius: 16px;
     padding: 28px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
 }
 
 .summary-header {
@@ -327,7 +330,7 @@ svg {
     animation: spin 0.8s linear infinite;
 }
 
-@@keyframes spin {
+@keyframes spin {
     to {
         transform: rotate(360deg);
     }
@@ -358,15 +361,19 @@ svg {
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
     width: 100vw;
     height: 100vh;
     background-color: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9999;
-    padding: 16px;
+    z-index: 10000;
+    padding: 20px;
+    box-sizing: border-box;
     opacity: 1;
     visibility: visible;
     transition: opacity 0.25s ease, visibility 0.25s ease;
@@ -381,7 +388,8 @@ svg {
 .modal-card {
     background: #ffffff;
     width: 100%;
-    max-width: 460px;
+    max-width: 480px;
+    margin: auto;
     padding: 32px 28px;
     border-radius: 20px;
     box-shadow: 0 20px 45px rgba(13, 148, 136, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -389,10 +397,11 @@ svg {
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-sizing: border-box;
     animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@@keyframes modalPop {
+@keyframes modalPop {
     0% {
         transform: scale(0.92);
         opacity: 0;
@@ -511,13 +520,15 @@ svg {
         box-shadow: 0 6px 18px rgba(13, 148, 136, 0.4);
     }
 
-    .btn-modal-action svg {
-        width: 18px;
-        height: 18px;
+@media (max-width: 840px) {
+    body {
+        padding: 20px 14px;
+        align-items: flex-start;
     }
 
-@@media (max-width: 768px) {
     .checkout-container {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        max-width: 480px;
+        gap: 20px;
     }
 }

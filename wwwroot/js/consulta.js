@@ -381,7 +381,8 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 await fetch(`/Account/FinalizarConsulta/${pacienteSeleccionado.id}`, {
                     method: "PUT",
-                    headers: { "Content-Type": "application/json" }
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ diagnostico: diag })
                 });
             } catch (err) {
                 console.error("Error al actualizar estado en BD:", err);
@@ -646,22 +647,53 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (btnOpenHistory && historyModal) {
-        btnOpenHistory.addEventListener("click", () => {
+        btnOpenHistory.addEventListener("click", async () => {
             if (!pacienteSeleccionado) return;
             if (historyModalCode) historyModalCode.textContent = `Código: ${pacienteSeleccionado.codigoExpediente || pacienteSeleccionado.id}`;
             if (historyModalBody) {
                 historyModalBody.innerHTML = `
-                    <div class="history-item">
-                        <div class="history-item-date">15/01/2026 - Consulta General</div>
-                        <div class="history-item-desc">Paciente presentó cuadro gripal leve. Se recetó Paracetamol 500mg y reposo por 3 días.</div>
-                    </div>
-                    <div class="history-item">
-                        <div class="history-item-date">10/11/2025 - Control de Rutina</div>
-                        <div class="history-item-desc">Signos vitales estables. Presión arterial dentro del rango normal. Sin complicaciones.</div>
+                    <div style="text-align: center; padding: 24px; color: #64748b;">
+                        <span>Cargando historial clínico...</span>
                     </div>
                 `;
             }
             historyModal.classList.remove("hidden");
+
+            try {
+                const resp = await fetch(`/Account/HistorialPaciente/${pacienteSeleccionado.id}`);
+                if (!resp.ok) throw new Error("Error en servidor");
+                const listaHistorial = await resp.json();
+
+                if (!historyModalBody) return;
+
+                if (!listaHistorial || listaHistorial.length === 0) {
+                    historyModalBody.innerHTML = `
+                        <div class="history-item empty-history" style="text-align: center; padding: 24px; color: #64748b; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                            <p style="margin: 0; font-size: 14px; font-weight: 600; color: #475569;">Paciente de primera consulta (sin diagnósticos previos)</p>
+                        </div>
+                    `;
+                } else {
+                    historyModalBody.innerHTML = listaHistorial.map(item => `
+                        <div class="history-item" style="margin-bottom: 12px; padding: 12px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <div class="history-item-date" style="font-weight: 700; color: #0f766e; font-size: 13px; margin-bottom: 4px;">
+                                ${item.fecha || item.fechaCompleta} - ${item.especialidad || 'Medicina General'}
+                            </div>
+                            <div class="history-item-desc" style="color: #334155; font-size: 13px; line-height: 1.5;">
+                                ${item.diagnostico || 'Sin observaciones registradas.'}
+                            </div>
+                        </div>
+                    `).join("");
+                }
+            } catch (err) {
+                console.error("Error al cargar historial:", err);
+                if (historyModalBody) {
+                    historyModalBody.innerHTML = `
+                        <div class="history-item empty-history" style="text-align: center; padding: 20px; color: #64748b; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                            <p style="margin: 0; font-weight: 600; color: #475569;">Paciente de primera consulta (sin diagnósticos previos)</p>
+                        </div>
+                    `;
+                }
+            }
         });
     }
 

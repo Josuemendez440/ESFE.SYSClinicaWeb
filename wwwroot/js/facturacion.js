@@ -30,17 +30,23 @@ document.addEventListener("DOMContentLoaded", () => {
             // Muestra solo los pacientes con consulta médica finalizada o que fueron enviados desde Consulta
             const facturados = expedientes.filter(e => {
                 const est = (e.estado || "").toLowerCase();
-                const esFacturadoBD = est === "facturado" || est.includes("factur");
+                const esFacturadoBD = est === "facturado" || est.includes("factur") || est.includes("finaliz");
                 const esFacturadoLocal = pendientesLocal.includes(String(e.id));
-                const noEstaPagado = est !== "pagado";
+                const noEstaPagado = est !== "pagado" && !e.liquidado;
                 return (esFacturadoBD || esFacturadoLocal) && noEstaPagado;
             });
 
             return facturados.map(e => {
-                const costoTotal = parseFloat(e.costo) || 25.00;
-                const pagoAnticipo = (e.origen === "Agendar Cita");
-                const anticipoPagado = pagoAnticipo ? parseFloat((costoTotal * 0.25).toFixed(2)) : 0;
-                const saldoPendiente = parseFloat((costoTotal - anticipoPagado).toFixed(2));
+                const costoTotal = parseFloat(e.costoTotal || e.costo) || 25.00;
+                let anticipoPagado = parseFloat(e.anticipoPagado) || 0;
+                let pagoAnticipo = Boolean(e.pagoAnticipo) || (e.origen === "Agendar Cita") || anticipoPagado > 0;
+                if (pagoAnticipo && anticipoPagado <= 0) {
+                    anticipoPagado = parseFloat((costoTotal * 0.25).toFixed(2));
+                }
+                const saldoPendiente = (e.saldoPendiente !== undefined && e.saldoPendiente !== null)
+                    ? parseFloat(e.saldoPendiente)
+                    : parseFloat(Math.max(0, costoTotal - anticipoPagado).toFixed(2));
+
                 return {
                     id: e.id,
                     codigoExpediente: e.codigoExpediente || `PAC-${String(e.id).padStart(4, '0')}`,

@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
     // Cargar información guardada previamente desde localStorage
     var datosCitaRaw = localStorage.getItem("resumenCitaData") || localStorage.getItem("citaAgendada");
     var datosCita = null;
@@ -11,6 +11,7 @@
             var costoTotal = parseFloat(datosCita.costo) || 25.00;
             var anticipo = parseFloat((costoTotal * 0.25).toFixed(2));
             var saldo = parseFloat((costoTotal * 0.75).toFixed(2));
+            window.curavitaAnticipoActual = anticipo;
 
             var elPrecioTotal = document.getElementById("precioTotalDisplay");
             var elSaldo = document.getElementById("saldoPendienteDisplay");
@@ -147,7 +148,8 @@
             var spinnerExistente = document.getElementById("btnSpinner");
             if (spinnerExistente) spinnerExistente.remove();
             if (btnPayIcon) btnPayIcon.style.display = "block";
-            if (btnPayText) btnPayText.textContent = "Pagar $12.50 y Confirmar Cita";
+            var antVal = (window.curavitaAnticipoActual || 6.25).toFixed(2);
+            if (btnPayText) btnPayText.textContent = "Pagar $" + antVal + " y Confirmar Cita";
         }
     }
 

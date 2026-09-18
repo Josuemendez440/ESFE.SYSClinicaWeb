@@ -30,16 +30,50 @@ namespace ESFE.ClinicaWEB.Controllers
                 conn.Open();
 
                 string query = @"
+                    WITH UltimaConsulta AS (
+                        SELECT 
+                            c.consulta_id,
+                            c.paciente_id,
+                            c.medico_id,
+                            c.fecha_consulta,
+                            c.estado_consulta_id,
+                            ROW_NUMBER() OVER (PARTITION BY c.paciente_id ORDER BY c.fecha_consulta DESC, c.consulta_id DESC) AS rn
+                        FROM dbo.Consultas c
+                    ),
+                    ResumenPagos AS (
+                        SELECT 
+                            pg.consulta_id,
+                            COUNT(pg.pago_id) AS total_pagos,
+                            SUM(pg.monto_pagado) AS total_pagado,
+                            MAX(CASE WHEN pg.estado_pago_id = 2 THEN 1 ELSE 0 END) AS tiene_pago_liquidado,
+                            MAX(CASE WHEN pg.estado_pago_id = 1 THEN pg.monto_pagado ELSE 0 END) AS monto_anticipo
+                        FROM dbo.Pagos pg
+                        GROUP BY pg.consulta_id
+                    )
                     SELECT 
-                        paciente_id,
-                        codigo_expediente,
-                        nombres,
-                        apellidos,
-                        dui_documento,
-                        telefono,
-                        fecha_nacimiento
-                    FROM dbo.Pacientes
-                    ORDER BY paciente_id DESC";
+                        p.paciente_id,
+                        p.codigo_expediente,
+                        p.nombres,
+                        p.apellidos,
+                        p.dui_documento,
+                        p.telefono,
+                        p.fecha_nacimiento,
+                        uc.consulta_id,
+                        uc.fecha_consulta,
+                        uc.estado_consulta_id,
+                        ISNULL(e.nombre_especialidad, 'Medicina General') AS especialidad,
+                        ISNULL(e.costo_consulta, 25.00) AS costo_consulta,
+                        ISNULL(CONCAT(u.nombres, ' ', u.apellidos), 'Dr. Roberto Gómez') AS medico,
+                        ISNULL(rp.total_pagos, 0) AS total_pagos,
+                        ISNULL(rp.total_pagado, 0.00) AS total_pagado,
+                        ISNULL(rp.tiene_pago_liquidado, 0) AS tiene_pago_liquidado,
+                        ISNULL(rp.monto_anticipo, 0.00) AS monto_anticipo
+                    FROM dbo.Pacientes p
+                    LEFT JOIN UltimaConsulta uc ON p.paciente_id = uc.paciente_id AND uc.rn = 1
+                    LEFT JOIN dbo.Usuarios u ON uc.medico_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN ResumenPagos rp ON uc.consulta_id = rp.consulta_id
+                    ORDER BY p.paciente_id DESC";
 
                 using var cmd = new SqlCommand(query, conn);
                 using var reader = cmd.ExecuteReader();
@@ -48,11 +82,52 @@ namespace ESFE.ClinicaWEB.Controllers
                 {
                     string nombres = reader["nombres"]?.ToString() ?? "";
                     string apellidos = reader["apellidos"]?.ToString() ?? "";
+                    int? estadoConsultaId = reader["estado_consulta_id"] != DBNull.Value ? Convert.ToInt32(reader["estado_consulta_id"]) : null;
+                    int tienePagoLiquidado = Convert.ToInt32(reader["tiene_pago_liquidado"]);
+                    int totalPagos = Convert.ToInt32(reader["total_pagos"]);
+                    decimal costoConsulta = Convert.ToDecimal(reader["costo_consulta"]);
+                    if (costoConsulta <= 0) costoConsulta = 25.00m;
+
+                    decimal montoAnticipo = Convert.ToDecimal(reader["monto_anticipo"]);
+                    if (montoAnticipo <= 0 && totalPagos == 1 && tienePagoLiquidado == 0)
+                    {
+                        montoAnticipo = Convert.ToDecimal(reader["total_pagado"]);
+                    }
+
+                    bool tieneAnticipo = montoAnticipo > 0;
+                    decimal saldoPendiente = Math.Max(0m, costoConsulta - montoAnticipo);
+
+                    // Determinar estado dinámico basado en Consulta y Pagos
+                    string estadoFinal = "En Espera";
+                    bool liquidado = false;
+
+                    if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                    {
+                        estadoFinal = "Facturado";
+                        liquidado = true;
+                    }
+                    else if (estadoConsultaId == 4)
+                    {
+                        estadoFinal = "Finalizado";
+                    }
+                    else if (estadoConsultaId == 3)
+                    {
+                        estadoFinal = "En Consulta";
+                    }
+                    else if (estadoConsultaId == 2)
+                    {
+                        estadoFinal = "En Triaje";
+                    }
+                    else
+                    {
+                        estadoFinal = "En Espera";
+                    }
 
                     lista.Add(new
                     {
                         id = reader["paciente_id"],
                         paciente_id = reader["paciente_id"],
+                        consultaId = reader["consulta_id"] != DBNull.Value ? reader["consulta_id"] : null,
                         codigoExpediente = reader["codigo_expediente"]?.ToString(),
                         codigo_expediente = reader["codigo_expediente"]?.ToString(),
                         nombres = nombres,
@@ -62,7 +137,16 @@ namespace ESFE.ClinicaWEB.Controllers
                         dui_documento = reader["dui_documento"]?.ToString(),
                         telefono = reader["telefono"]?.ToString() ?? "Sin Teléfono",
                         fechaNacimiento = reader["fecha_nacimiento"] != DBNull.Value ? Convert.ToDateTime(reader["fecha_nacimiento"]).ToString("yyyy-MM-dd") : null,
-                        estado = "En Espera"
+                        especialidad = reader["especialidad"]?.ToString() ?? "Medicina General",
+                        medico = reader["medico"]?.ToString() ?? "Dr. Roberto Gómez",
+                        costo = costoConsulta,
+                        costoTotal = costoConsulta,
+                        anticipoPagado = montoAnticipo,
+                        pagoAnticipo = tieneAnticipo,
+                        saldoPendiente = saldoPendiente,
+                        estado = estadoFinal,
+                        estadoConsultaId = estadoConsultaId,
+                        liquidado = liquidado
                     });
                 }
 
@@ -85,16 +169,51 @@ namespace ESFE.ClinicaWEB.Controllers
                 conn.Open();
 
                 string query = @"
+                    WITH UltimaConsulta AS (
+                        SELECT 
+                            c.consulta_id,
+                            c.paciente_id,
+                            c.medico_id,
+                            c.fecha_consulta,
+                            c.estado_consulta_id,
+                            ROW_NUMBER() OVER (PARTITION BY c.paciente_id ORDER BY c.fecha_consulta DESC, c.consulta_id DESC) AS rn
+                        FROM dbo.Consultas c
+                        WHERE c.paciente_id = @id
+                    ),
+                    ResumenPagos AS (
+                        SELECT 
+                            pg.consulta_id,
+                            COUNT(pg.pago_id) AS total_pagos,
+                            SUM(pg.monto_pagado) AS total_pagado,
+                            MAX(CASE WHEN pg.estado_pago_id = 2 THEN 1 ELSE 0 END) AS tiene_pago_liquidado,
+                            MAX(CASE WHEN pg.estado_pago_id = 1 THEN pg.monto_pagado ELSE 0 END) AS monto_anticipo
+                        FROM dbo.Pagos pg
+                        GROUP BY pg.consulta_id
+                    )
                     SELECT 
-                        paciente_id,
-                        codigo_expediente,
-                        nombres,
-                        apellidos,
-                        dui_documento,
-                        telefono,
-                        fecha_nacimiento
-                    FROM dbo.Pacientes
-                    WHERE paciente_id = @id";
+                        p.paciente_id,
+                        p.codigo_expediente,
+                        p.nombres,
+                        p.apellidos,
+                        p.dui_documento,
+                        p.telefono,
+                        p.fecha_nacimiento,
+                        uc.consulta_id,
+                        uc.fecha_consulta,
+                        uc.estado_consulta_id,
+                        ISNULL(e.nombre_especialidad, 'Medicina General') AS especialidad,
+                        ISNULL(e.costo_consulta, 25.00) AS costo_consulta,
+                        ISNULL(CONCAT(u.nombres, ' ', u.apellidos), 'Dr. Roberto Gómez') AS medico,
+                        ISNULL(rp.total_pagos, 0) AS total_pagos,
+                        ISNULL(rp.total_pagado, 0.00) AS total_pagado,
+                        ISNULL(rp.tiene_pago_liquidado, 0) AS tiene_pago_liquidado,
+                        ISNULL(rp.monto_anticipo, 0.00) AS monto_anticipo
+                    FROM dbo.Pacientes p
+                    LEFT JOIN UltimaConsulta uc ON p.paciente_id = uc.paciente_id AND uc.rn = 1
+                    LEFT JOIN dbo.Usuarios u ON uc.medico_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN ResumenPagos rp ON uc.consulta_id = rp.consulta_id
+                    WHERE p.paciente_id = @id";
 
                 using var cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", id);
@@ -104,19 +223,70 @@ namespace ESFE.ClinicaWEB.Controllers
                 {
                     string nombres = reader["nombres"]?.ToString() ?? "";
                     string apellidos = reader["apellidos"]?.ToString() ?? "";
+                    int? estadoConsultaId = reader["estado_consulta_id"] != DBNull.Value ? Convert.ToInt32(reader["estado_consulta_id"]) : null;
+                    int tienePagoLiquidado = Convert.ToInt32(reader["tiene_pago_liquidado"]);
+                    int totalPagos = Convert.ToInt32(reader["total_pagos"]);
+                    decimal costoConsulta = Convert.ToDecimal(reader["costo_consulta"]);
+                    if (costoConsulta <= 0) costoConsulta = 25.00m;
+
+                    decimal montoAnticipo = Convert.ToDecimal(reader["monto_anticipo"]);
+                    if (montoAnticipo <= 0 && totalPagos == 1 && tienePagoLiquidado == 0)
+                    {
+                        montoAnticipo = Convert.ToDecimal(reader["total_pagado"]);
+                    }
+
+                    bool tieneAnticipo = montoAnticipo > 0;
+                    decimal saldoPendiente = Math.Max(0m, costoConsulta - montoAnticipo);
+
+                    string estadoFinal = "En Espera";
+                    bool liquidado = false;
+
+                    if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                    {
+                        estadoFinal = "Facturado";
+                        liquidado = true;
+                    }
+                    else if (estadoConsultaId == 4)
+                    {
+                        estadoFinal = "Finalizado";
+                    }
+                    else if (estadoConsultaId == 3)
+                    {
+                        estadoFinal = "En Consulta";
+                    }
+                    else if (estadoConsultaId == 2)
+                    {
+                        estadoFinal = "En Triaje";
+                    }
+                    else
+                    {
+                        estadoFinal = "En Espera";
+                    }
 
                     return Ok(new
                     {
                         id = reader["paciente_id"],
                         paciente_id = reader["paciente_id"],
+                        consultaId = reader["consulta_id"] != DBNull.Value ? reader["consulta_id"] : null,
                         codigoExpediente = reader["codigo_expediente"]?.ToString(),
+                        codigo_expediente = reader["codigo_expediente"]?.ToString(),
                         nombres = nombres,
                         apellidos = apellidos,
                         nombreCompleto = $"{nombres} {apellidos}".Trim(),
                         dui = reader["dui_documento"]?.ToString(),
+                        dui_documento = reader["dui_documento"]?.ToString(),
                         telefono = reader["telefono"]?.ToString(),
                         fechaNacimiento = reader["fecha_nacimiento"] != DBNull.Value ? Convert.ToDateTime(reader["fecha_nacimiento"]).ToString("yyyy-MM-dd") : null,
-                        estado = "En Espera"
+                        especialidad = reader["especialidad"]?.ToString() ?? "Medicina General",
+                        medico = reader["medico"]?.ToString() ?? "Dr. Roberto Gómez",
+                        costo = costoConsulta,
+                        costoTotal = costoConsulta,
+                        anticipoPagado = montoAnticipo,
+                        pagoAnticipo = tieneAnticipo,
+                        saldoPendiente = saldoPendiente,
+                        estado = estadoFinal,
+                        estadoConsultaId = estadoConsultaId,
+                        liquidado = liquidado
                     });
                 }
 

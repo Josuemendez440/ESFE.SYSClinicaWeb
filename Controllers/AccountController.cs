@@ -464,6 +464,12 @@ namespace ESFE.ClinicaWEB.Controllers
             return View();
         }
 
+        [HttpGet]
+        public IActionResult ConfirmarPago(int? id)
+        {
+            return View("Confirma_pago");
+        }
+
         [HttpPost]
         public async Task<IActionResult> ConfirmarPago()
         {
@@ -707,6 +713,197 @@ namespace ESFE.ClinicaWEB.Controllers
             }
         }
 
+        [HttpGet("/Account/HistorialPaciente/{id}")]
+        public async Task<IActionResult> HistorialPaciente(int id)
+        {
+            var historial = new List<object>();
+            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                string query = @"
+                    SELECT 
+                        c.consulta_id,
+                        c.fecha_consulta,
+                        ISNULL(e.nombre_especialidad, 'Medicina General') AS especialidad,
+                        ISNULL(CONCAT(u.nombres, ' ', u.apellidos), 'Dr. Roberto Gómez') AS medico,
+                        d.conclusion_diagnostico AS diagnostico
+                    FROM dbo.Consultas c
+                    INNER JOIN dbo.Diagnosticos d ON c.consulta_id = d.consulta_id
+                    LEFT JOIN dbo.Usuarios u ON c.medico_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    WHERE c.paciente_id = @id
+                    ORDER BY c.fecha_consulta DESC, d.diagnostico_id DESC";
+
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", id);
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    DateTime fecha = reader.GetDateTime(reader.GetOrdinal("fecha_consulta"));
+                    historial.Add(new
+                    {
+                        consultaId = reader.GetInt32(reader.GetOrdinal("consulta_id")),
+                        fecha = fecha.ToString("dd/MM/yyyy"),
+                        fechaCompleta = fecha.ToString("dd/MM/yyyy HH:mm"),
+                        especialidad = reader.GetString(reader.GetOrdinal("especialidad")),
+                        medico = reader.GetString(reader.GetOrdinal("medico")),
+                        diagnostico = reader.GetString(reader.GetOrdinal("diagnostico"))
+                    });
+                }
+
+                return Ok(historial);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Error al obtener historial: " + ex.Message });
+            }
+        }
+
+        [HttpPut("/Account/FinalizarConsulta/{id}")]
+        [HttpPost("/Account/FinalizarConsulta/{id}")]
+        public async Task<IActionResult> FinalizarConsulta(int id, [FromBody] FinalizarConsultaDto? model)
+        {
+            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                // Buscar la consulta más reciente o activa del paciente
+                int consultaId = 0;
+                string queryBuscar = @"
+                    SELECT TOP 1 consulta_id 
+                    FROM dbo.Consultas 
+                    WHERE paciente_id = @id 
+                    ORDER BY fecha_consulta DESC, consulta_id DESC";
+
+                using (var cmdBuscar = new SqlCommand(queryBuscar, conn))
+                {
+                    cmdBuscar.Parameters.AddWithValue("@id", id);
+                    var res = await cmdBuscar.ExecuteScalarAsync();
+                    if (res != null && res != DBNull.Value)
+                    {
+                        consultaId = Convert.ToInt32(res);
+                    }
+                }
+
+                if (consultaId > 0)
+                {
+                    // Actualizar estado_consulta_id = 4 (Finalizada)
+                    string queryUpdate = "UPDATE dbo.Consultas SET estado_consulta_id = 4 WHERE consulta_id = @cid";
+                    using (var cmdUpd = new SqlCommand(queryUpdate, conn))
+                    {
+                        cmdUpd.Parameters.AddWithValue("@cid", consultaId);
+                        await cmdUpd.ExecuteNonQueryAsync();
+                    }
+
+                    // Guardar diagnóstico clínico si viene en la solicitud
+                    if (model != null && !string.IsNullOrWhiteSpace(model.Diagnostico))
+                    {
+                        string queryDiag = @"
+                            IF EXISTS (SELECT 1 FROM dbo.Diagnosticos WHERE consulta_id = @cid)
+                                UPDATE dbo.Diagnosticos SET conclusion_diagnostico = @diag WHERE consulta_id = @cid
+                            ELSE
+                                INSERT INTO dbo.Diagnosticos (consulta_id, conclusion_diagnostico, fecha_registro) 
+                                VALUES (@cid, @diag, GETDATE())";
+
+                        using var cmdDiag = new SqlCommand(queryDiag, conn);
+                        cmdDiag.Parameters.AddWithValue("@cid", consultaId);
+                        cmdDiag.Parameters.AddWithValue("@diag", model.Diagnostico.Trim());
+                        await cmdDiag.ExecuteNonQueryAsync();
+                    }
+                }
+
+                return Ok(new { exito = true, mensaje = "Consulta finalizada con éxito.", consultaId = consultaId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { exito = false, mensaje = "Error al finalizar consulta: " + ex.Message });
+            }
+        }
+
+        [HttpPost("/Account/ProcesarPagoFactura")]
+        public async Task<IActionResult> ProcesarPagoFactura([FromBody] ProcesarPagoFacturaDto model)
+        {
+            if (model == null || model.PacienteId <= 0)
+            {
+                return BadRequest(new { exito = false, mensaje = "Datos del paciente inválidos." });
+            }
+
+            string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                int consultaId = 0;
+                string queryConsulta = @"
+                    SELECT TOP 1 consulta_id 
+                    FROM dbo.Consultas 
+                    WHERE paciente_id = @pid 
+                    ORDER BY fecha_consulta DESC, consulta_id DESC";
+
+                using (var cmdC = new SqlCommand(queryConsulta, conn))
+                {
+                    cmdC.Parameters.AddWithValue("@pid", model.PacienteId);
+                    var resC = await cmdC.ExecuteScalarAsync();
+                    if (resC != null && resC != DBNull.Value) consultaId = Convert.ToInt32(resC);
+                }
+
+                if (consultaId == 0)
+                {
+                    // Si no tiene consulta, crear una de liquidación
+                    string queryInsC = @"
+                        INSERT INTO dbo.Consultas (paciente_id, medico_id, recepcionista_id, fecha_consulta, tipo_atencion_id, estado_consulta_id, es_emergencia)
+                        VALUES (@pid, NULL, 1, GETDATE(), 1, 4, 0);
+                        SELECT SCOPE_IDENTITY();";
+                    using var cmdIns = new SqlCommand(queryInsC, conn);
+                    cmdIns.Parameters.AddWithValue("@pid", model.PacienteId);
+                    consultaId = Convert.ToInt32(await cmdIns.ExecuteScalarAsync());
+                }
+                else
+                {
+                    // Asegurar estado_consulta_id = 4 (Finalizada)
+                    string queryUpdC = "UPDATE dbo.Consultas SET estado_consulta_id = 4 WHERE consulta_id = @cid";
+                    using var cmdUpd = new SqlCommand(queryUpdC, conn);
+                    cmdUpd.Parameters.AddWithValue("@cid", consultaId);
+                    await cmdUpd.ExecuteNonQueryAsync();
+                }
+
+                // Determinar metodo_pago_id (1: Efectivo, 2: Tarjeta, 3: Transferencia)
+                int metodoId = 1;
+                string met = (model.MetodoPago ?? "").ToLower();
+                if (met.Contains("tarjet")) metodoId = 2;
+                else if (met.Contains("transf")) metodoId = 3;
+
+                // Insertar pago liquidado con estado_pago_id = 2 (Pagado)
+                string insertPagoQuery = @"
+                    INSERT INTO dbo.Pagos (consulta_id, metodo_pago_id, estado_pago_id, monto_pagado, fecha_pago, cajero_id)
+                    VALUES (@consulta_id, @metodo_id, 2, @monto, GETDATE(), 1)";
+
+                using (var cmdPago = new SqlCommand(insertPagoQuery, conn))
+                {
+                    cmdPago.Parameters.AddWithValue("@consulta_id", consultaId);
+                    cmdPago.Parameters.AddWithValue("@metodo_id", metodoId);
+                    cmdPago.Parameters.AddWithValue("@monto", model.MontoTotal > 0 ? model.MontoTotal : 18.75m);
+                    await cmdPago.ExecuteNonQueryAsync();
+                }
+
+                return Ok(new { exito = true, mensaje = "Pago de factura liquidado exitosamente en SQL Server." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { exito = false, mensaje = "Error al procesar pago de factura: " + ex.Message });
+            }
+        }
+
         private static decimal ParsearDecimalSeguro(object? val, decimal valorDefecto = 0m)
         {
             if (val == null) return valorDefecto;
@@ -818,5 +1015,17 @@ namespace ESFE.ClinicaWEB.Controllers
         public string? MetodoPago { get; set; } = "Efectivo";
         public object? MontoRecibido { get; set; }
         public object? Cambio { get; set; }
+    }
+
+    public class ProcesarPagoFacturaDto
+    {
+        public int PacienteId { get; set; }
+        public decimal MontoTotal { get; set; }
+        public string? MetodoPago { get; set; }
+    }
+
+    public class FinalizarConsultaDto
+    {
+        public string? Diagnostico { get; set; }
     }
 }

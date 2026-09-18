@@ -80,11 +80,23 @@ document.addEventListener("DOMContentLoaded", () => {
             const dui = exp.dui || exp.dui_documento || "-";
             const estado = exp.estado || "En Espera";
 
+            let badgeClass = "badge-espera";
+            const estLower = estado.toLowerCase();
+            if (estLower.includes("factur") || estLower.includes("liquid")) {
+                badgeClass = "badge-facturado";
+            } else if (estLower.includes("finaliz") || estLower.includes("atendid")) {
+                badgeClass = "badge-facturado";
+            } else if (estLower.includes("consulta")) {
+                badgeClass = "badge-consulta";
+            } else if (estLower.includes("triaje")) {
+                badgeClass = "badge-registrado";
+            }
+
             tr.innerHTML = `
                 <td><strong>${cod}</strong></td>
                 <td>${nom}</td>
                 <td>${dui}</td>
-                <td><span class="badge-status badge-espera">${estado}</span></td>
+                <td><span class="badge-status ${badgeClass}">${estado}</span></td>
                 <td class="text-right">
                     <button type="button" class="btn-select-patient" data-id="${exp.id || exp.paciente_id}">
                         <span>Seleccionar</span>
