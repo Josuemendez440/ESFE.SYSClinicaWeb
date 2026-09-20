@@ -70,8 +70,9 @@ namespace ESFE.ClinicaWEB.Controllers
                         ISNULL(rp.monto_anticipo, 0.00) AS monto_anticipo
                     FROM dbo.Pacientes p
                     LEFT JOIN UltimaConsulta uc ON p.paciente_id = uc.paciente_id AND uc.rn = 1
-                    LEFT JOIN dbo.Usuarios u ON uc.medico_id = u.usuario_id
-                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN dbo.Medicos m ON uc.medico_id = m.medico_id
+                    LEFT JOIN dbo.Usuarios u ON m.usuario_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON m.especialidad_id = e.especialidad_id
                     LEFT JOIN ResumenPagos rp ON uc.consulta_id = rp.consulta_id
                     ORDER BY p.paciente_id DESC";
 
@@ -110,36 +111,62 @@ namespace ESFE.ClinicaWEB.Controllers
                     decimal saldoPendiente = Math.Max(0m, costoConsulta - montoAnticipo);
 
                     // Determinar estado dinámico basado en Consulta y Pagos
-                    string estadoFinal = "En Espera";
+                    bool tieneConsulta = reader["consulta_id"] != DBNull.Value;
+                    string especialidad = tieneConsulta ? (reader["especialidad"]?.ToString() ?? "Medicina General") : "Sin Asignar";
+                    string medico = tieneConsulta ? (reader["medico"]?.ToString() ?? "Dr. Roberto Gómez") : "Sin Asignar";
+
+                    string estadoFinal = "Registrado";
                     bool liquidado = false;
 
-                    if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                    if (!tieneConsulta)
                     {
-                        estadoFinal = "Facturado";
-                        liquidado = true;
+                        estadoFinal = "Registrado";
                     }
-                    else if (estadoConsultaId == 4)
+                    // Si la consulta está activa (En Espera, Triaje o Consulta), ese estado tiene prioridad absoluta
+                    else if (estadoConsultaId == 1)
                     {
-                        estadoFinal = "Finalizado";
-                    }
-                    else if (estadoConsultaId == 3)
-                    {
-                        estadoFinal = "En Consulta";
+                        estadoFinal = "En Espera";
                     }
                     else if (estadoConsultaId == 2)
                     {
                         estadoFinal = "En Triaje";
                     }
+                    else if (estadoConsultaId == 3)
+                    {
+                        estadoFinal = "En Consulta";
+                    }
+                    // Solo si la consulta está en un estado terminal (Finalizado/Facturado), revisamos pagos
+                    else if (estadoConsultaId == 4 || estadoConsultaId == 5)
+                    {
+                        if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                        {
+                            estadoFinal = "Facturado";
+                            liquidado = true;
+                        }
+                        else
+                        {
+                            estadoFinal = "Finalizado";
+                        }
+                    }
                     else
                     {
-                        estadoFinal = "En Espera";
+                        // Fallback: si hay pagos liquidados, marcar como Facturado
+                        if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                        {
+                            estadoFinal = "Facturado";
+                            liquidado = true;
+                        }
+                        else
+                        {
+                            estadoFinal = "Registrado";
+                        }
                     }
 
                     lista.Add(new
                     {
                         id = reader["paciente_id"],
                         paciente_id = reader["paciente_id"],
-                        consultaId = reader["consulta_id"] != DBNull.Value ? reader["consulta_id"] : null,
+                        consultaId = tieneConsulta ? reader["consulta_id"] : null,
                         codigoExpediente = reader["codigo_expediente"]?.ToString(),
                         codigo_expediente = reader["codigo_expediente"]?.ToString(),
                         nombres = nombres,
@@ -149,8 +176,8 @@ namespace ESFE.ClinicaWEB.Controllers
                         dui_documento = reader["dui_documento"]?.ToString(),
                         telefono = reader["telefono"]?.ToString() ?? "Sin Teléfono",
                         fechaNacimiento = reader["fecha_nacimiento"] != DBNull.Value ? Convert.ToDateTime(reader["fecha_nacimiento"]).ToString("yyyy-MM-dd") : null,
-                        especialidad = reader["especialidad"]?.ToString() ?? "Medicina General",
-                        medico = reader["medico"]?.ToString() ?? "Dr. Roberto Gómez",
+                        especialidad = especialidad,
+                        medico = medico,
                         costo = costoConsulta,
                         costoTotal = costoConsulta,
                         anticipoPagado = montoAnticipo,
@@ -222,8 +249,9 @@ namespace ESFE.ClinicaWEB.Controllers
                         ISNULL(rp.monto_anticipo, 0.00) AS monto_anticipo
                     FROM dbo.Pacientes p
                     LEFT JOIN UltimaConsulta uc ON p.paciente_id = uc.paciente_id AND uc.rn = 1
-                    LEFT JOIN dbo.Usuarios u ON uc.medico_id = u.usuario_id
-                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN dbo.Medicos m ON uc.medico_id = m.medico_id
+                    LEFT JOIN dbo.Usuarios u ON m.usuario_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON m.especialidad_id = e.especialidad_id
                     LEFT JOIN ResumenPagos rp ON uc.consulta_id = rp.consulta_id
                     WHERE p.paciente_id = @id";
 
@@ -250,36 +278,59 @@ namespace ESFE.ClinicaWEB.Controllers
                     bool tieneAnticipo = montoAnticipo > 0;
                     decimal saldoPendiente = Math.Max(0m, costoConsulta - montoAnticipo);
 
-                    string estadoFinal = "En Espera";
+                    bool tieneConsulta = reader["consulta_id"] != DBNull.Value;
+                    string especialidad = tieneConsulta ? (reader["especialidad"]?.ToString() ?? "Medicina General") : "Sin Asignar";
+                    string medico = tieneConsulta ? (reader["medico"]?.ToString() ?? "Dr. Roberto Gómez") : "Sin Asignar";
+
+                    string estadoFinal = "Registrado";
                     bool liquidado = false;
 
-                    if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                    if (!tieneConsulta)
                     {
-                        estadoFinal = "Facturado";
-                        liquidado = true;
+                        estadoFinal = "Registrado";
                     }
-                    else if (estadoConsultaId == 4)
+                    else if (estadoConsultaId == 1)
                     {
-                        estadoFinal = "Finalizado";
-                    }
-                    else if (estadoConsultaId == 3)
-                    {
-                        estadoFinal = "En Consulta";
+                        estadoFinal = "En Espera";
                     }
                     else if (estadoConsultaId == 2)
                     {
                         estadoFinal = "En Triaje";
                     }
+                    else if (estadoConsultaId == 3)
+                    {
+                        estadoFinal = "En Consulta";
+                    }
+                    else if (estadoConsultaId == 4 || estadoConsultaId == 5)
+                    {
+                        if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                        {
+                            estadoFinal = "Facturado";
+                            liquidado = true;
+                        }
+                        else
+                        {
+                            estadoFinal = "Finalizado";
+                        }
+                    }
                     else
                     {
-                        estadoFinal = "En Espera";
+                        if (tienePagoLiquidado == 1 || totalPagos >= 2)
+                        {
+                            estadoFinal = "Facturado";
+                            liquidado = true;
+                        }
+                        else
+                        {
+                            estadoFinal = "Registrado";
+                        }
                     }
 
                     return Ok(new
                     {
                         id = reader["paciente_id"],
                         paciente_id = reader["paciente_id"],
-                        consultaId = reader["consulta_id"] != DBNull.Value ? reader["consulta_id"] : null,
+                        consultaId = tieneConsulta ? reader["consulta_id"] : null,
                         codigoExpediente = reader["codigo_expediente"]?.ToString(),
                         codigo_expediente = reader["codigo_expediente"]?.ToString(),
                         nombres = nombres,
@@ -289,8 +340,8 @@ namespace ESFE.ClinicaWEB.Controllers
                         dui_documento = reader["dui_documento"]?.ToString(),
                         telefono = reader["telefono"]?.ToString(),
                         fechaNacimiento = reader["fecha_nacimiento"] != DBNull.Value ? Convert.ToDateTime(reader["fecha_nacimiento"]).ToString("yyyy-MM-dd") : null,
-                        especialidad = reader["especialidad"]?.ToString() ?? "Medicina General",
-                        medico = reader["medico"]?.ToString() ?? "Dr. Roberto Gómez",
+                        especialidad = especialidad,
+                        medico = medico,
                         costo = costoConsulta,
                         costoTotal = costoConsulta,
                         anticipoPagado = montoAnticipo,
@@ -389,6 +440,187 @@ namespace ESFE.ClinicaWEB.Controllers
                 return StatusCode(500, new { mensaje = "Error al actualizar el expediente: " + ex.Message });
             }
         }
+        // GET: api/ExpedientesApi/medicos
+        [HttpGet("medicos")]
+        public async Task<IActionResult> GetMedicos()
+        {
+            var medicos = new List<object>();
+            try
+            {
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                string query = @"
+                    SELECT 
+                        m.medico_id,
+                        CONCAT(u.nombres, ' ', u.apellidos) AS nombre_completo,
+                        ISNULL(e.nombre_especialidad, 'Medicina General') AS especialidad,
+                        ISNULL(e.costo_consulta, 25.00) AS costo_consulta
+                    FROM dbo.Medicos m
+                    INNER JOIN dbo.Usuarios u ON m.usuario_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON m.especialidad_id = e.especialidad_id
+                    WHERE m.estado = 1 AND u.estado = 1
+                    ORDER BY e.nombre_especialidad, u.nombres";
+
+                using var cmd = new SqlCommand(query, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    medicos.Add(new
+                    {
+                        id = reader["medico_id"],
+                        nombre = reader["nombre_completo"]?.ToString(),
+                        especialidad = reader["especialidad"]?.ToString(),
+                        costo = Convert.ToDecimal(reader["costo_consulta"])
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("[GetMedicos] " + ex.Message);
+            }
+
+            return Ok(medicos);
+        }
+
+        // POST: api/ExpedientesApi/asignar-cita
+        [HttpPost("asignar-cita")]
+        public async Task<IActionResult> AsignarCita([FromBody] AsignarCitaDto model)
+        {
+            if (model == null) return BadRequest(new { exito = false, mensaje = "Datos de asignación no válidos." });
+
+            try
+            {
+                string connectionString = _configuration.GetConnectionString("DefaultConnection")!;
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
+
+                int pacienteId = model.PacienteId;
+                if (pacienteId <= 0 && !string.IsNullOrWhiteSpace(model.CodigoExpediente))
+                {
+                    string qPac = "SELECT TOP 1 paciente_id FROM dbo.Pacientes WHERE codigo_expediente = @cod";
+                    using var cmdP = new SqlCommand(qPac, conn);
+                    cmdP.Parameters.AddWithValue("@cod", model.CodigoExpediente.Trim());
+                    var resP = await cmdP.ExecuteScalarAsync();
+                    if (resP != null && resP != DBNull.Value) pacienteId = Convert.ToInt32(resP);
+                }
+
+                if (pacienteId <= 0)
+                {
+                    return BadRequest(new { exito = false, mensaje = "Paciente no encontrado." });
+                }
+
+                // Resolver usuario médico en dbo.Usuarios
+                int? medicoId = model.MedicoId > 0 ? model.MedicoId : null;
+                string medicoNombre = model.MedicoNombre?.Trim() ?? "Dr. Roberto Gómez";
+
+                if (!medicoId.HasValue && !string.IsNullOrWhiteSpace(medicoNombre))
+                {
+                    string qMed = @"
+                        SELECT TOP 1 m.medico_id 
+                        FROM dbo.Medicos m
+                        INNER JOIN dbo.Usuarios u ON m.usuario_id = u.usuario_id
+                        WHERE CONCAT(u.nombres, ' ', u.apellidos) LIKE @medNom 
+                           OR @medNom LIKE '%' + u.nombres + '%'
+                        ORDER BY m.medico_id ASC";
+                    using var cmdM = new SqlCommand(qMed, conn);
+                    cmdM.Parameters.AddWithValue("@medNom", $"%{medicoNombre.Replace("Dr.", "").Replace("Dra.", "").Trim()}%");
+                    var resM = await cmdM.ExecuteScalarAsync();
+                    if (resM != null && resM != DBNull.Value) medicoId = Convert.ToInt32(resM);
+                }
+
+                // Si aún no se tiene medico_id, buscar cualquier médico o médico default
+                if (!medicoId.HasValue)
+                {
+                    string qDefaultMed = @"
+                        SELECT TOP 1 m.medico_id 
+                        FROM dbo.Medicos m
+                        INNER JOIN dbo.Usuarios u ON m.usuario_id = u.usuario_id
+                        WHERE m.estado = 1 AND u.estado = 1
+                        ORDER BY m.medico_id ASC";
+                    using var cmdDM = new SqlCommand(qDefaultMed, conn);
+                    var resDM = await cmdDM.ExecuteScalarAsync();
+                    if (resDM != null && resDM != DBNull.Value) medicoId = Convert.ToInt32(resDM);
+                    else medicoId = 1;
+                }
+
+                // Recepcionista
+                int recepcionistaId = 1;
+                using (var recepCmd = new SqlCommand("SELECT TOP 1 usuario_id FROM dbo.Usuarios WHERE estado = 1 ORDER BY usuario_id ASC", conn))
+                {
+                    var resRecep = await recepCmd.ExecuteScalarAsync();
+                    if (resRecep != null && resRecep != DBNull.Value) recepcionistaId = Convert.ToInt32(resRecep);
+                }
+
+                // Verificar si tiene consulta activa con estado_consulta_id = 1 (En Espera)
+                int consultaId = 0;
+                string qExiste = @"
+                    SELECT TOP 1 consulta_id 
+                    FROM dbo.Consultas 
+                    WHERE paciente_id = @pid AND estado_consulta_id = 1
+                    ORDER BY fecha_consulta DESC, consulta_id DESC";
+                using (var cmdEx = new SqlCommand(qExiste, conn))
+                {
+                    cmdEx.Parameters.AddWithValue("@pid", pacienteId);
+                    var resEx = await cmdEx.ExecuteScalarAsync();
+                    if (resEx != null && resEx != DBNull.Value) consultaId = Convert.ToInt32(resEx);
+                }
+
+                if (consultaId > 0)
+                {
+                    string qUpd = @"
+                        UPDATE dbo.Consultas 
+                        SET medico_id = @mid, fecha_consulta = GETDATE()
+                        WHERE consulta_id = @cid";
+                    using var cmdUpd = new SqlCommand(qUpd, conn);
+                    cmdUpd.Parameters.AddWithValue("@mid", medicoId);
+                    cmdUpd.Parameters.AddWithValue("@cid", consultaId);
+                    await cmdUpd.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    string qIns = @"
+                        INSERT INTO dbo.Consultas 
+                            (paciente_id, medico_id, recepcionista_id, fecha_consulta, tipo_atencion_id, estado_consulta_id, es_emergencia)
+                        VALUES 
+                            (@pid, @mid, @rid, GETDATE(), 1, 1, 0);
+                        SELECT SCOPE_IDENTITY();";
+                    using var cmdIns = new SqlCommand(qIns, conn);
+                    cmdIns.Parameters.AddWithValue("@pid", pacienteId);
+                    cmdIns.Parameters.AddWithValue("@mid", medicoId);
+                    cmdIns.Parameters.AddWithValue("@rid", recepcionistaId);
+                    var resIns = await cmdIns.ExecuteScalarAsync();
+                    if (resIns != null && resIns != DBNull.Value) consultaId = Convert.ToInt32(resIns);
+                }
+
+                return Ok(new
+                {
+                    exito = true,
+                    mensaje = $"Cita asignada exitosamente con {medicoNombre} ({model.Especialidad}).",
+                    consultaId = consultaId,
+                    pacienteId = pacienteId,
+                    medicoId = medicoId,
+                    medico = medicoNombre,
+                    especialidad = model.Especialidad ?? "Medicina General",
+                    costo = model.Costo > 0 ? model.Costo : 25.00m
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { exito = false, mensaje = "Error al asignar cita en el servidor: " + ex.Message });
+            }
+        }
+    }
+
+    public class AsignarCitaDto
+    {
+        public int PacienteId { get; set; }
+        public string? CodigoExpediente { get; set; }
+        public int? MedicoId { get; set; }
+        public string? MedicoNombre { get; set; }
+        public string? Especialidad { get; set; }
+        public decimal Costo { get; set; }
     }
 
     public class PacienteCrearDto

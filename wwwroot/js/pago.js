@@ -250,6 +250,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     localStorage.removeItem("resumenCitaData");
                     localStorage.removeItem("citaAgendada");
 
+                    // Datos del paciente confirmado para la redirección al módulo de Consulta Médica
+                    var codExp = data.codigoExpediente || (data.pacienteId ? ("PAC-" + String(data.pacienteId).padStart(4, "0")) : "PAC-0001");
+                    var pacId = data.pacienteId || codExp;
+
                     // Rellenar datos en el Modal Flotante
                     var modalPac = document.getElementById("modalPaciente");
                     if (modalPac) modalPac.textContent = paciente || "Paciente";
@@ -266,6 +270,30 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (modalPagoExitoso) {
                         modalPagoExitoso.classList.remove("hidden");
                     }
+
+                    // Generar Comprobante PDF automáticamente
+                    var numeroComprobante = "COMP-" + Date.now().toString().slice(-6);
+                    var html = generarHtmlComprobante({
+                        numeroComprobante: numeroComprobante,
+                        paciente: paciente,
+                        codigo: codExp,
+                        especialidad: especialidad,
+                        fechaHora: fechaHora,
+                        anticipo: payload.montoAnticipo.toFixed(2),
+                        saldo: payload.saldoPendiente.toFixed(2),
+                        total: payload.precioTotal.toFixed(2),
+                        tarjeta: numero.slice(-4)
+                    });
+
+                    fetch('/Account/GuardarPDF', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            HtmlContent: html,
+                            Tipo: 'Comprobante',
+                            NombreArchivo: `Comprobante-${codExp}-${numeroComprobante}.pdf`
+                        })
+                    }).catch(err => console.error("Error al guardar Comprobante PDF:", err));
                 } else {
                     mostrarError(data.mensaje || "Ocurrió un inconveniente al procesar el pago.");
                 }
@@ -282,5 +310,85 @@ document.addEventListener("DOMContentLoaded", function () {
         btnVerCitas.addEventListener("click", function () {
             window.location.href = "/Account/Expedientes";
         });
+    }
+
+    function generarHtmlComprobante(datos) {
+        const now = new Date();
+        const fechaEmision = now.toLocaleDateString("es-ES") + " " + now.toLocaleTimeString("es-ES", { hour12: true });
+        return `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Comprobante de Pago - ${datos.numeroComprobante}</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #fff; padding: 40px; color: #334155; font-size: 13px; }
+        .sheet { max-width: 600px; margin: 0 auto; border: 1px solid #cbd5e1; padding: 30px; border-radius: 8px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e7a8e; padding-bottom: 20px; margin-bottom: 20px; }
+        .title { color: #1a6f83; font-size: 20px; font-weight: bold; margin: 0; }
+        .subtitle { font-size: 11px; color: #64748b; }
+        .badge { background: #f6fbfa; border: 1px solid #1e7a8e; padding: 10px; border-radius: 6px; text-align: center; }
+        .badge-title { font-size: 10px; font-weight: bold; color: #1e7a8e; }
+        .badge-num { font-size: 16px; font-weight: bold; color: #1a6f83; margin: 4px 0; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .label { font-size: 11px; font-weight: bold; color: #64748b; }
+        .value { font-size: 14px; font-weight: bold; color: #334155; }
+        .total-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin-top: 20px; }
+        .footer { text-align: center; font-size: 10px; color: #94a3b8; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="sheet">
+        <div class="header">
+            <div>
+                <h2 class="title">CLÍNICA CURAVITA</h2>
+                <div class="subtitle">Comprobante de Reserva de Cita</div>
+            </div>
+            <div class="badge">
+                <div class="badge-title">N° COMPROBANTE</div>
+                <div class="badge-num">${datos.numeroComprobante}</div>
+                <div class="subtitle">Fecha: ${fechaEmision}</div>
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <div class="label">PACIENTE</div>
+                <div class="value">${datos.paciente}</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="label">N° EXPEDIENTE</div>
+                <div class="value">${datos.codigo}</div>
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <div class="label">MÉTODO DE PAGO</div>
+                <div class="value">Tarjeta terminada en ${datos.tarjeta}</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="label">ESTADO</div>
+                <div class="value" style="color: #1e7a8e;">ANTICIPO PAGADO</div>
+            </div>
+        </div>
+        <div class="total-box">
+            <div class="row">
+                <span class="label">Costo Total de Consulta:</span>
+                <span class="value">$${datos.total}</span>
+            </div>
+            <div class="row">
+                <span class="label">Saldo Pendiente a Pagar en Clínica:</span>
+                <span class="value">$${datos.saldo}</span>
+            </div>
+            <hr style="border: none; border-top: 1px solid #cbd5e1; margin: 10px 0;">
+            <div class="row" style="align-items: center;">
+                <span class="label" style="font-size: 14px; color: #1e7a8e;">ANTICIPO COBRADO HOY (25%):</span>
+                <span class="value" style="font-size: 18px; color: #1e7a8e;">$${datos.anticipo}</span>
+            </div>
+        </div>
+        <div class="footer">
+            ESFE SYSCURAVITA - Documento Oficial de Pago Electrónico
+        </div>
+    </div>
+</body>
+</html>`;
     }
 });

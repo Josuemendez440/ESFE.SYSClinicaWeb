@@ -20,6 +20,8 @@ html {
 body {
     background-color: #f0f4f8;
     color: #1e293b;
+    margin: 0;
+    padding: 0;
 }
 
 .app-container {
@@ -57,13 +59,13 @@ body {
     letter-spacing: -0.3px;
 }
 
-.brand svg, .sidebar-brand svg {
-    width: 24px;
-    height: 24px;
-    stroke: #22c55e;
-    color: #22c55e;
-    flex-shrink: 0;
-}
+    .brand svg, .sidebar-brand svg {
+        width: 24px;
+        height: 24px;
+        stroke: #22c55e;
+        color: #22c55e;
+        flex-shrink: 0;
+    }
 
 .nav-menu, .sidebar-menu {
     list-style: none;
@@ -92,34 +94,34 @@ body {
     text-overflow: ellipsis;
 }
 
-.nav-item svg, .menu-item a svg {
-    width: 18px;
-    height: 18px;
-    stroke: currentColor;
-    flex-shrink: 0;
-}
+    .nav-item svg, .menu-item a svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        flex-shrink: 0;
+    }
 
-.nav-item span, .menu-item a span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+    .nav-item span, .menu-item a span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-.nav-item:hover, .menu-item a:hover:not(.active) {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #f8fafc;
-}
+    .nav-item:hover, .menu-item a:hover:not(.active) {
+        background-color: rgba(255, 255, 255, 0.06);
+        color: #f8fafc;
+    }
 
-.nav-item.active, .menu-item.active a {
-    background-color: #134e5e;
-    color: #ffffff;
-    font-weight: 600;
-    box-shadow: 0 2px 6px rgba(19, 78, 94, 0.35);
-}
+    .nav-item.active, .menu-item.active a {
+        background-color: #134e5e;
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(19, 78, 94, 0.35);
+    }
 
-.nav-item.active svg, .menu-item.active a svg {
-    stroke: #38bdf8;
-}
+        .nav-item.active svg, .menu-item.active a svg {
+            stroke: #38bdf8;
+        }
 
 .sidebar-footer {
     padding-top: 12px;
@@ -143,17 +145,17 @@ body {
     transition: all 0.2s ease;
 }
 
-.btn-logout:hover {
-    background-color: rgba(225, 29, 72, 0.12);
-    color: #f43f5e;
-}
+    .btn-logout:hover {
+        background-color: rgba(225, 29, 72, 0.12);
+        color: #f43f5e;
+    }
 
-.btn-logout svg {
-    width: 18px;
-    height: 18px;
-    stroke: currentColor;
-    flex-shrink: 0;
-}
+    .btn-logout svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        flex-shrink: 0;
+    }
 
 /* ==========================================
    3. CONTENIDO PRINCIPAL Y HEADER
@@ -161,22 +163,29 @@ body {
 .main-content {
     flex: 1;
     margin-left: 250px;
-    padding: 22px 32px;
-    max-width: calc(100vw - 250px);
+    padding: 28px 40px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: calc(100% - 250px);
 }
 
 .top-header {
+    width: 100%;
+    max-width: 1200px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
 }
 
-.top-header h1 {
-    font-size: 22px;
-    font-weight: 800;
-    color: #0b1d28;
-}
+    .top-header h1 {
+        font-size: 22px;
+        font-weight: 800;
+        color: #0b1d28;
+        margin: 0;
+    }
 
 .user-dropdown {
     display: flex;
@@ -190,19 +199,21 @@ body {
     color: #0b1d28;
 }
 
-.user-dropdown svg {
-    width: 16px;
-    height: 16px;
-    stroke: #0b1d28;
-}
+    .user-dropdown svg {
+        width: 16px;
+        height: 16px;
+        stroke: #0b1d28;
+    }
 
 /* ==========================================
    4. TARJETA DE BIENVENIDA Y RETÍCULA
    ========================================== */
 .dashboard-body {
+    width: 100%;
+    max-width: 1200px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 20px;
 }
 
 .welcome-card {
@@ -228,21 +239,23 @@ body {
     margin-bottom: 4px;
 }
 
-.profile-avatar-icon svg {
-    width: 28px;
-    height: 28px;
-    stroke: #0e7490;
-}
+    .profile-avatar-icon svg {
+        width: 28px;
+        height: 28px;
+        stroke: #0e7490;
+    }
 
 .welcome-title {
     font-size: 22px;
     font-weight: 800;
     color: #0b1d28;
+    margin: 0;
 }
 
 .welcome-subtitle {
     color: #64748b;
     font-size: 14px;
+    margin-top: 0;
     margin-bottom: 6px;
 }
 
@@ -313,12 +326,14 @@ body {
     font-size: 18px;
     font-weight: 700;
     color: #0b1d28;
+    margin: 0;
 }
 
 .module-desc {
     font-size: 14px;
     color: #64748b;
     line-height: 1.5;
+    margin: 0;
 }
 
 /* ==========================================

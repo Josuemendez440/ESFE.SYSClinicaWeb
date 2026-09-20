@@ -43,7 +43,11 @@
             </div>
             <h3 class="modal-title">¿Aceptar Paciente?</h3>
             <p class="modal-desc">
-                ¿Deseas pasar a consulta a <b id="acceptPatientName" class="text-primary"></b> (<span id="acceptPatientCode"></span>)?<br>Se extraerá su expediente y se abrirá su historial clínico.
+                ¿Deseas pasar a consulta a <b id="acceptPatientName" class="text-primary"></b> (<span id="acceptPatientCode"></span>)?<br>
+                <span id="acceptPatientMedicoWrapper" style="display:inline-block; margin-top:6px; font-size:13px; color:#475569;">
+                    Médico asignado: <strong id="acceptPatientMedico" style="color:#0f766e;">---</strong> &bull; Especialidad: <span id="acceptPatientEspecialidad" style="font-weight:600;">---</span>
+                </span><br>
+                Se extraerá su expediente y se abrirá su historial clínico.
             </p>
             <div class="modal-actions">
                 <button type="button" class="btn-modal-cancel" id="btnCancelAccept">Cancelar</button>
@@ -165,7 +169,12 @@
                     <div class="patient-card-header">
                         <div>
                             <h2 id="lblNombrePaciente">Sin paciente seleccionado</h2>
-                            <p class="patient-meta">Expediente: <b id="lblExpediente">---</b> • Edad: <span id="lblEdad">--</span></p>
+                            <p class="patient-meta">
+                                Expediente: <b id="lblExpediente">---</b> &bull; 
+                                Médico: <strong id="lblMedico" style="color: #0f766e;">---</strong> &bull; 
+                                Especialidad: <span id="lblEspecialidad" style="font-weight: 600;">---</span> &bull; 
+                                Edad: <span id="lblEdad">--</span>
+                            </p>
                         </div>
                         <button type="button" class="btn-history" id="btnOpenHistory">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

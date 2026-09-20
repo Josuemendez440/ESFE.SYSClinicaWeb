@@ -371,7 +371,165 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             mostrarToast("¡Factura procesada y liquidada con éxito!");
+
+            // Generar y Guardar PDF Automáticamente
+            const html = generarHtmlFactura(facturaPagadaActual);
+            fetch('/Account/GuardarPDF', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    HtmlContent: html,
+                    Tipo: 'Factura',
+                    NombreArchivo: `Factura-${facturaPagadaActual.numeroFactura}-${facturaPagadaActual.codigo || '0000'}.pdf`
+                })
+            }).catch(err => console.error("Error al guardar PDF en servidor:", err));
         });
+    }
+
+    function generarHtmlFactura(factura) {
+        const totalNum = parseFloat(factura.montoTotal.replace("$", "")) || 0;
+        const costoTotalNum = parseFloat(factura.costoTotal) || totalNum;
+        const anticipoPagadoNum = parseFloat(factura.anticipoPagado) || 0;
+        const subtotalNum = (costoTotalNum / 1.13).toFixed(2);
+        const ivaNum = (costoTotalNum - parseFloat(subtotalNum)).toFixed(2);
+
+        const now = new Date();
+        const horas = now.getHours();
+        const ampm = horas >= 12 ? "p.m." : "a.m.";
+        const horas12 = horas % 12 || 12;
+        const minutos = String(now.getMinutes()).padStart(2, "0");
+        const fechaHoraEmision = `${now.toLocaleDateString("es-ES")} ${String(horas12).padStart(2, "0")}:${minutos} ${ampm}`;
+
+        return `
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="utf-8" />
+                <title>Factura Electrónica - ${factura.numeroFactura}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+                    body { padding: 40px; color: #334155; background: #fff; font-size: 13px; }
+                    .sheet { max-width: 700px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 32px; box-shadow: none; }
+                    .text-teal { color: #1e7a8e; }
+                    @media print {
+                        body { padding: 0; background: #fff; }
+                        .sheet { border: none; box-shadow: none; padding: 10px; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="sheet">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <img src="/images/logo.png" style="width: 55px; height: auto; object-fit: contain; margin-right: 6px;" />
+                            <div>
+                                <h2 style="color: #1a6f83; font-size: 21px; font-weight: 800; margin: 0; letter-spacing: -0.3px;">CLÍNICA CURAVITA</h2>
+                                <div style="font-size: 10px; font-weight: 700; color: #1e7a8e; letter-spacing: 0.5px; margin-top: 2px;">COMPROBANTE DE PAGO Y FACTURACIÓN</div>
+                                <div style="font-size: 11px; color: #64748b; margin-top: 1px;">ESFE SYSCURAVITA • PBX: (503) 2200-0000 • San Salvador, El Salvador</div>
+                            </div>
+                        </div>
+                        <div style="border: 1px solid #1e7a8e; border-radius: 8px; padding: 10px 16px; text-align: center; background-color: #f6fbfa; min-width: 190px;">
+                            <div style="font-size: 10px; font-weight: 800; color: #1e7a8e; letter-spacing: 0.5px;">FACTURA ELECTRÓNICA</div>
+                            <div style="font-size: 18px; font-weight: 800; color: #1a6f83; margin: 3px 0;">${factura.numeroFactura}</div>
+                            <div style="font-size: 11px; color: #64748b;">Fecha: ${fechaHoraEmision}</div>
+                        </div>
+                    </div>
+
+                    <div style="height: 3px; background: #a2c6ce; border-radius: 2px; margin: 0 0 16px;"></div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; background: #f8fafc; gap: 14px; margin-bottom: 24px;">
+                        <div>
+                            <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 3px;">PACIENTE / CLIENTE</div>
+                            <div style="font-size: 14px; font-weight: 700; color: #334155;">${factura.paciente}</div>
+                            <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-top: 12px; margin-bottom: 3px;">MÉTODO DE PAGO</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #334155;">${factura.metodoPago}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 3px;">N° DE EXPEDIENTE</div>
+                            <div style="font-size: 14px; font-weight: 700; color: #334155;">${factura.codigo}</div>
+                            <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-top: 12px; margin-bottom: 3px;">ESTADO DEL COMPROBANTE</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #1e7a8e;">CANCELADO / PAGADO</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size: 11px; font-weight: 800; color: #1e7a8e; margin-bottom: 8px;">DETALLE DEL SERVICIO FACTURADO</div>
+                        <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #1e7a8e; color: #ffffff; text-align: left;">
+                                    <th style="padding: 10px 14px; width: 60px; text-align: center;">CANT.</th>
+                                    <th style="padding: 10px 14px;">CONCEPTO / ESPECIALIDAD DEL SERVICIO</th>
+                                    <th style="padding: 10px 14px; text-align: right; width: 110px;">PRECIO UNIT.</th>
+                                    <th style="padding: 10px 14px; text-align: right; width: 110px;">TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 14px; text-align: center; font-weight: 700; color: #1e7a8e;">1</td>
+                                    <td style="padding: 14px;">
+                                        <div style="font-weight: 700; color: #1e7a8e; font-size: 13px;">Consulta Médica Especializada</div>
+                                        <div style="font-size: 12px; color: #64748b; margin-top: 3px;">Especialidad: ${factura.especialidad}</div>
+                                    </td>
+                                    <td style="padding: 14px; text-align: right; color: #64748b;">$${subtotalNum}</td>
+                                    <td style="padding: 14px; text-align: right; font-weight: 700; color: #1e7a8e;">$${subtotalNum}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: stretch; margin-bottom: 30px;">
+                        <div style="border-left: 3px solid #1e7a8e; background: #f6fbfa; border-radius: 4px; padding: 16px; font-size: 12px; color: #1e7a8e; line-height: 1.6;">
+                            ${anticipoPagadoNum > 0 ? `
+                            <strong style="color: #1a6f83;">Constancia de Pago:</strong> Se acredita el pago de la consulta médica mediante anticipo en línea del 25% ($${anticipoPagadoNum.toFixed(2)}) y cancelación del 75% restante en caja mediante <strong style="color: #1a6f83;">${factura.metodoPago}</strong>. Gracias por confiar en los servicios médicos de Clínica Curavita.
+                            ` : `
+                            <strong style="color: #1a6f83;">Constancia de Pago:</strong> Se acredita la cancelación total del servicio mediante <strong style="color: #1a6f83;">${factura.metodoPago}</strong>. Gracias por confiar en los servicios médicos de Clínica Curavita.
+                            `}
+                        </div>
+
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b;">
+                                <span>Subtotal:</span>
+                                <span>$${subtotalNum}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: #64748b;">
+                                <span>IVA (13%):</span>
+                                <span>$${ivaNum}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; margin-bottom: ${anticipoPagadoNum > 0 ? '8px' : '12px'};">
+                                <span style="font-weight: 700; font-size: 14px; color: #1e7a8e;">${anticipoPagadoNum > 0 ? 'TOTAL CONSULTA:' : 'TOTAL:'}</span>
+                                <span style="font-size: 18px; font-weight: 800; color: #1e7a8e;">$${costoTotalNum.toFixed(2)}</span>
+                            </div>
+                            ${anticipoPagadoNum > 0 ? `
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #0d9488; font-size: 12px; font-weight: 600;">
+                                <span>Anticipo pagado en línea (25%):</span>
+                                <span>- $${anticipoPagadoNum.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; margin-bottom: 12px;">
+                                <span style="font-weight: 700; font-size: 14px; color: #1e7a8e;">COBRADO HOY (75%):</span>
+                                <span style="font-size: 16px; font-weight: 800; color: #1e7a8e;">${factura.montoTotal}</span>
+                            </div>` : ''}
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b; font-size: 12px;">
+                                <span>Monto Recibido:</span>
+                                <span>${factura.montoRecibido}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; color: #64748b; font-size: 12px;">
+                                <span>Cambio / Vuelto:</span>
+                                <span>${factura.cambio}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+                        <span>ESFE SYSCURAVITA - Módulo de Facturación y Caja</span>
+                        <span>Gracias por su preferencia • Comprobante Fiscal Oficial</span>
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        `;
     }
 
     if (btnEnviarCorreoFactura) {
@@ -439,149 +597,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            const totalNum = parseFloat(facturaPagadaActual.montoTotal.replace("$", "")) || 0;
-            const costoTotalNum = parseFloat(facturaPagadaActual.costoTotal) || totalNum;
-            const anticipoPagadoNum = parseFloat(facturaPagadaActual.anticipoPagado) || 0;
-            const subtotalNum = (costoTotalNum / 1.13).toFixed(2);
-            const ivaNum = (costoTotalNum - parseFloat(subtotalNum)).toFixed(2);
-
-            const now = new Date();
-            const horas = now.getHours();
-            const ampm = horas >= 12 ? "p.m." : "a.m.";
-            const horas12 = horas % 12 || 12;
-            const minutos = String(now.getMinutes()).padStart(2, "0");
-            const fechaHoraEmision = `${now.toLocaleDateString("es-ES")} ${String(horas12).padStart(2, "0")}:${minutos} ${ampm}`;
-
-            const htmlContent = `
-                <!DOCTYPE html>
-                <html lang="es">
-                <head>
-                    <meta charset="utf-8" />
-                    <title>Factura Electrónica - ${facturaPagadaActual.numeroFactura}</title>
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-                        body { padding: 40px; color: #334155; background: #fff; font-size: 13px; }
-                        .sheet { max-width: 700px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 32px; box-shadow: none; }
-                        .text-teal { color: #1e7a8e; }
-                        @media print {
-                            body { padding: 0; background: #fff; }
-                            .sheet { border: none; box-shadow: none; padding: 10px; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="sheet">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                            <div style="display: flex; gap: 12px; align-items: center;">
-                                <img src="/images/logo.png" style="width: 55px; height: auto; object-fit: contain; margin-right: 6px;" />
-                                <div>
-                                    <h2 style="color: #1a6f83; font-size: 21px; font-weight: 800; margin: 0; letter-spacing: -0.3px;">CLÍNICA CURAVITA</h2>
-                                    <div style="font-size: 10px; font-weight: 700; color: #1e7a8e; letter-spacing: 0.5px; margin-top: 2px;">COMPROBANTE DE PAGO Y FACTURACIÓN</div>
-                                    <div style="font-size: 11px; color: #64748b; margin-top: 1px;">ESFE SYSCURAVITA • PBX: (503) 2200-0000 • San Salvador, El Salvador</div>
-                                </div>
-                            </div>
-                            <div style="border: 1px solid #1e7a8e; border-radius: 8px; padding: 10px 16px; text-align: center; background-color: #f6fbfa; min-width: 190px;">
-                                <div style="font-size: 10px; font-weight: 800; color: #1e7a8e; letter-spacing: 0.5px;">FACTURA ELECTRÓNICA</div>
-                                <div style="font-size: 18px; font-weight: 800; color: #1a6f83; margin: 3px 0;">${facturaPagadaActual.numeroFactura}</div>
-                                <div style="font-size: 11px; color: #64748b;">Fecha: ${fechaHoraEmision}</div>
-                            </div>
-                        </div>
-
-                        <div style="height: 3px; background: #a2c6ce; border-radius: 2px; margin: 0 0 16px;"></div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; background: #f8fafc; gap: 14px; margin-bottom: 24px;">
-                            <div>
-                                <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 3px;">PACIENTE / CLIENTE</div>
-                                <div style="font-size: 14px; font-weight: 700; color: #334155;">${facturaPagadaActual.paciente}</div>
-                                <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-top: 12px; margin-bottom: 3px;">MÉTODO DE PAGO</div>
-                                <div style="font-size: 13px; font-weight: 700; color: #334155;">${facturaPagadaActual.metodoPago}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 3px;">N° DE EXPEDIENTE</div>
-                                <div style="font-size: 14px; font-weight: 700; color: #334155;">${facturaPagadaActual.codigo}</div>
-                                <div style="font-size: 10px; font-weight: 700; color: #64748b; margin-top: 12px; margin-bottom: 3px;">ESTADO DEL COMPROBANTE</div>
-                                <div style="font-size: 13px; font-weight: 700; color: #1e7a8e;">CANCELADO / PAGADO</div>
-                            </div>
-                        </div>
-
-                        <div style="margin-bottom: 20px;">
-                            <div style="font-size: 11px; font-weight: 800; color: #1e7a8e; margin-bottom: 8px;">DETALLE DEL SERVICIO FACTURADO</div>
-                            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 4px; overflow: hidden; font-size: 12px;">
-                                <thead>
-                                    <tr style="background: #1e7a8e; color: #ffffff; text-align: left;">
-                                        <th style="padding: 10px 14px; width: 60px; text-align: center;">CANT.</th>
-                                        <th style="padding: 10px 14px;">CONCEPTO / ESPECIALIDAD DEL SERVICIO</th>
-                                        <th style="padding: 10px 14px; text-align: right; width: 110px;">PRECIO UNIT.</th>
-                                        <th style="padding: 10px 14px; text-align: right; width: 110px;">TOTAL</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td style="padding: 14px; text-align: center; font-weight: 700; color: #1e7a8e;">1</td>
-                                        <td style="padding: 14px;">
-                                            <div style="font-weight: 700; color: #1e7a8e; font-size: 13px;">Consulta Médica Especializada</div>
-                                            <div style="font-size: 12px; color: #64748b; margin-top: 3px;">Especialidad: ${facturaPagadaActual.especialidad}</div>
-                                        </td>
-                                        <td style="padding: 14px; text-align: right; color: #64748b;">$${subtotalNum}</td>
-                                        <td style="padding: 14px; text-align: right; font-weight: 700; color: #1e7a8e;">$${subtotalNum}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: stretch; margin-bottom: 30px;">
-                            <div style="border-left: 3px solid #1e7a8e; background: #f6fbfa; border-radius: 4px; padding: 16px; font-size: 12px; color: #1e7a8e; line-height: 1.6;">
-                                ${anticipoPagadoNum > 0 ? `
-                                <strong style="color: #1a6f83;">Constancia de Pago:</strong> Se acredita el pago de la consulta médica mediante anticipo en línea del 25% ($${anticipoPagadoNum.toFixed(2)}) y cancelación del 75% restante en caja mediante <strong style="color: #1a6f83;">${facturaPagadaActual.metodoPago}</strong>. Gracias por confiar en los servicios médicos de Clínica Curavita.
-                                ` : `
-                                <strong style="color: #1a6f83;">Constancia de Pago:</strong> Se acredita la cancelación total del servicio mediante <strong style="color: #1a6f83;">${facturaPagadaActual.metodoPago}</strong>. Gracias por confiar en los servicios médicos de Clínica Curavita.
-                                `}
-                            </div>
-
-                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px; font-size: 13px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b;">
-                                    <span>Subtotal:</span>
-                                    <span>$${subtotalNum}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: #64748b;">
-                                    <span>IVA (13%):</span>
-                                    <span>$${ivaNum}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; margin-bottom: ${anticipoPagadoNum > 0 ? '8px' : '12px'};">
-                                    <span style="font-weight: 700; font-size: 14px; color: #1e7a8e;">${anticipoPagadoNum > 0 ? 'TOTAL CONSULTA:' : 'TOTAL:'}</span>
-                                    <span style="font-size: 18px; font-weight: 800; color: #1e7a8e;">$${costoTotalNum.toFixed(2)}</span>
-                                </div>
-                                ${anticipoPagadoNum > 0 ? `
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #0d9488; font-size: 12px; font-weight: 600;">
-                                    <span>Anticipo pagado en línea (25%):</span>
-                                    <span>- $${anticipoPagadoNum.toFixed(2)}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; margin-bottom: 12px;">
-                                    <span style="font-weight: 700; font-size: 14px; color: #1e7a8e;">COBRADO HOY (75%):</span>
-                                    <span style="font-size: 16px; font-weight: 800; color: #1e7a8e;">${facturaPagadaActual.montoTotal}</span>
-                                </div>` : ''}
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #64748b; font-size: 12px;">
-                                    <span>Monto Recibido:</span>
-                                    <span>${facturaPagadaActual.montoRecibido}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between; color: #64748b; font-size: 12px;">
-                                    <span>Cambio / Vuelto:</span>
-                                    <span>${facturaPagadaActual.cambio}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; padding-top: 12px; border-top: 1px solid #e2e8f0;">
-                            <span>ESFE SYSCURAVITA - Módulo de Facturación y Caja</span>
-                            <span>Gracias por su preferencia • Comprobante Fiscal Oficial</span>
-                        </div>
-                    </div>
-                    <script>
-                        window.onload = function() { window.print(); }
-                    </script>
-                </body>
-                </html>
-            `;
+            const htmlContent = generarHtmlFactura(facturaPagadaActual);
 
             printWindow.document.write(htmlContent);
             printWindow.document.close();

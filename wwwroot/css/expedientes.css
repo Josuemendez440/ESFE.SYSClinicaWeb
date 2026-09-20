@@ -38,6 +38,8 @@ html {
 body {
     background-color: var(--bg-main);
     color: var(--text-main);
+    margin: 0;
+    padding: 0;
 }
 
 .app-container {
@@ -45,7 +47,7 @@ body {
     min-height: 100vh;
 }
 
-/* Sidebar Unificado y Elegante */
+/* Sidebar Unificado */
 .sidebar {
     width: 250px;
     background-color: var(--sidebar-bg);
@@ -167,29 +169,37 @@ body {
         flex-shrink: 0;
     }
 
-/* Main Content */
+/* Main Content Centrado */
 .main-content {
     flex: 1;
     margin-left: 250px;
-    padding: 20px 28px;
+    padding: 32px 40px;
     min-width: 0;
-    max-width: calc(100vw - 250px);
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
 }
 
 .expedientes-container {
+    width: 100%;
+    max-width: 1400px;
     display: grid;
-    grid-template-columns: 1fr 1.2fr;
-    gap: 20px;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 24px;
     align-items: start;
 }
 
 /* Tarjetas */
 .card {
     background: #ffffff;
-    border-radius: 14px;
-    padding: 22px 24px;
+    border-radius: 16px;
+    padding: 28px;
     border: 1px solid var(--border);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .card-header {
@@ -197,7 +207,7 @@ body {
     align-items: center;
     gap: 12px;
     margin-bottom: 24px;
-    padding-bottom: 12px;
+    padding-bottom: 14px;
     border-bottom: 1px solid #f1f5f9;
 }
 
@@ -205,6 +215,7 @@ body {
         width: 22px;
         height: 22px;
         color: var(--primary);
+        stroke: var(--primary);
     }
 
     .card-header h2 {
@@ -212,6 +223,7 @@ body {
         font-weight: 800;
         color: var(--primary);
         letter-spacing: 0.5px;
+        margin: 0;
     }
 
 /* Formulario */
@@ -219,7 +231,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
 }
 
     .form-group label {
@@ -230,19 +242,22 @@ body {
     }
 
     .form-group input {
-        padding: 12px 16px;
+        padding: 10px 14px;
+        height: 42px;
         border: 1px solid var(--border);
         border-radius: 8px;
         outline: none;
-        font-size: 14px;
+        font-size: 13.5px;
         background-color: #f8fafc;
         color: var(--text-main);
         transition: all 0.2s ease;
+        box-sizing: border-box;
     }
 
         .form-group input:focus {
             background-color: #ffffff;
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(25, 83, 102, 0.12);
         }
 
 .btn-submit {
@@ -254,18 +269,20 @@ body {
     background: var(--primary);
     color: white;
     border: none;
-    padding: 14px;
+    padding: 12px 18px;
+    height: 44px;
     border-radius: 8px;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
     margin-top: 10px;
 }
 
     .btn-submit svg {
         width: 18px;
         height: 18px;
+        stroke: currentColor;
     }
 
     .btn-submit:hover {
@@ -274,9 +291,10 @@ body {
 
 /* Tabla de Búsqueda */
 .table-container {
-    margin-top: 10px;
+    margin-top: 12px;
     border-radius: 8px;
     overflow: hidden;
+    border: 1px solid var(--border);
 }
 
 .table {
@@ -289,20 +307,86 @@ body {
         color: var(--primary);
         font-size: 11px;
         font-weight: 800;
-        padding: 14px 12px;
+        padding: 12px 14px;
         text-align: left;
         letter-spacing: 0.3px;
     }
 
     .table td {
-        padding: 12px;
+        padding: 12px 14px;
         border-bottom: 1px solid var(--border);
         font-size: 13px;
         color: var(--text-main);
+        vertical-align: middle;
+    }
+
+    .table tr:last-child td {
+        border-bottom: none;
     }
 
 .text-right {
     text-align: right;
+}
+
+/* Botón Seleccionar */
+.btn-select-patient {
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .btn-select-patient:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+/* Badges de Estado */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.badge-registrado {
+    background-color: #e0f2fe;
+    color: #0c4a6e;
+    border: 1px solid #7dd3fc;
+}
+
+.badge-espera {
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+.badge-consulta {
+    background-color: #ede9fe;
+    color: #4c1d95;
+    border: 1px solid #c4b5fd;
+}
+
+.badge-facturado {
+    background-color: #fce7f3;
+    color: #831843;
+    border: 1px solid #f9a8d4;
+}
+
+.badge-liquidado {
+    background-color: #dcfce7;
+    color: #14532d;
+    border: 1px solid #86efac;
 }
 
 /* Modales */
@@ -310,7 +394,7 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%; /* Cambiado a 100% para evitar el desborde provocado por 100vw */
+    width: 100%;
     height: 100%;
     background-color: rgba(11, 29, 40, 0.65);
     backdrop-filter: blur(4px);
@@ -414,68 +498,6 @@ body {
     align-items: center;
 }
 
-/* Badges de Estado */
-.badge-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-}
-
-.badge-registrado {
-    background-color: #e0f2fe;
-    color: #0c4a6e;
-    border: 1px solid #7dd3fc;
-}
-
-.badge-espera {
-    background-color: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fcd34d;
-}
-
-.badge-consulta {
-    background-color: #ede9fe;
-    color: #4c1d95;
-    border: 1px solid #c4b5fd;
-}
-
-.badge-facturado {
-    background-color: #fce7f3;
-    color: #831843;
-    border: 1px solid #f9a8d4;
-}
-
-.badge-liquidado {
-    background-color: #dcfce7;
-    color: #14532d;
-    border: 1px solid #86efac;
-}
-
-/* Botón Seleccionar */
-.btn-select-patient {
-    background-color: var(--primary);
-    color: #ffffff;
-    border: none;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-    .btn-select-patient:hover {
-        background-color: var(--primary-dark);
-        transform: translateY(-1px);
-    }
-
-/* Iconos y Modales Adicionales */
 .icon-success {
     background-color: #ecfdf5 !important;
 }
@@ -607,31 +629,6 @@ body {
     }
 }
 
-/* Animación de fila recién agregada */
-@keyframes rowHighlight {
-    0% {
-        background-color: #ccfbf1;
-    }
-
-    60% {
-        background-color: #f0fdfa;
-    }
-
-    100% {
-        background-color: transparent;
-    }
-}
-
-/* Toast tipo info (azul) */
-.toast-item.toast-info {
-    border-left-color: #0ea5e9;
-}
-
-    .toast-item.toast-info svg {
-        color: #0ea5e9;
-    }
-
-/* Botón interactivo para paciente con cita ya asignada */
 .btn-cita-asignada {
     display: inline-flex;
     align-items: center;
@@ -652,10 +649,8 @@ body {
         border-color: #f59e0b;
         color: #78350f;
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
     }
 
-/* Botón "Nueva Cita" para pacientes ya atendidos */
 .btn-nueva-cita {
     display: inline-flex;
     align-items: center;
@@ -676,7 +671,6 @@ body {
         border-color: #0d9488;
         color: #0f766e;
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(13, 148, 136, 0.2);
     }
 
 @media (max-width: 1100px) {

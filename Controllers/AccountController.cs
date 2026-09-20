@@ -20,6 +20,7 @@ namespace ESFE.ClinicaWEB.Controllers
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
         private readonly ApplicationDbContext _context;
+        private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env;
 
         private static readonly string[] ModulosAdmin = ["inicio", "citas", "agendar", "expedientes", "consulta", "facturacion"];
         private static readonly string[] ModulosMedico = ["inicio", "consulta"];
@@ -27,11 +28,12 @@ namespace ESFE.ClinicaWEB.Controllers
         private static readonly string[] ModulosRecepcionista = ["inicio", "facturacion"];
         private static readonly string[] ModulosPaciente = ["inicio", "citas", "agendar"];
 
-        public AccountController(IConfiguration configuration, IEmailService emailService, ApplicationDbContext context)
+        public AccountController(IConfiguration configuration, IEmailService emailService, ApplicationDbContext context, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
         {
             _configuration = configuration;
             _emailService = emailService;
             _context = context;
+            _env = env;
         }
 
         [HttpGet]
@@ -74,7 +76,8 @@ namespace ESFE.ClinicaWEB.Controllers
                         e.nombre_especialidad AS especialidad 
                     FROM dbo.Usuarios u
                     INNER JOIN dbo.Roles r ON u.rol_id = r.rol_id
-                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN dbo.Medicos m ON u.usuario_id = m.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON m.especialidad_id = e.especialidad_id
                     WHERE LOWER(u.correo) = @correo 
                       AND u.password_hash = @pass";
 
@@ -221,8 +224,8 @@ namespace ESFE.ClinicaWEB.Controllers
                 }
 
                 string insertQuery = @"
-                    INSERT INTO dbo.Usuarios (username, correo, password_hash, nombres, apellidos, rol_id, especialidad_id, estado, fecha_creacion)
-                    VALUES (@username, @correo, @password_hash, @nombres, @apellidos, @rol_id, NULL, 1, GETDATE())";
+                    INSERT INTO dbo.Usuarios (username, correo, password_hash, nombres, apellidos, rol_id, estado, fecha_creacion)
+                    VALUES (@username, @correo, @password_hash, @nombres, @apellidos, @rol_id, 1, GETDATE())";
 
                 using (var insertCmd = new SqlCommand(insertQuery, conn))
                 {
@@ -412,8 +415,9 @@ namespace ESFE.ClinicaWEB.Controllers
                         18.75 AS SaldoPendiente
                     FROM dbo.Consultas c
                     INNER JOIN dbo.Pacientes p ON c.paciente_id = p.paciente_id
-                    LEFT JOIN dbo.Usuarios u ON c.medico_id = u.usuario_id
-                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN dbo.Medicos m ON c.medico_id = m.medico_id
+                    LEFT JOIN dbo.Usuarios u ON m.usuario_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON m.especialidad_id = e.especialidad_id
                     LEFT JOIN dbo.Pagos pg ON c.consulta_id = pg.consulta_id
                     ORDER BY c.fecha_consulta DESC";
 
@@ -681,7 +685,7 @@ namespace ESFE.ClinicaWEB.Controllers
                 mensaje = "¡Pago procesado y cita registrada con éxito!",
                 codigoExpediente = codigoExpedienteGenerado,
                 pacienteId = idPacienteGenerado,
-                redirectUrl = "/Account/Citas"
+                redirectUrl = "/Account/Consulta"
             });
         }
 
@@ -749,12 +753,26 @@ namespace ESFE.ClinicaWEB.Controllers
                         c.fecha_consulta,
                         ISNULL(e.nombre_especialidad, 'Medicina General') AS especialidad,
                         ISNULL(CONCAT(u.nombres, ' ', u.apellidos), 'Dr. Roberto Gómez') AS medico,
-                        d.conclusion_diagnostico AS diagnostico
+                        d.conclusion_diagnostico AS diagnostico,
+                        t.presion_sistolica,
+                        t.presion_diastolica,
+                        t.frecuencia_cardiaca,
+                        t.temperatura,
+                        t.peso_kg,
+                        STRING_AGG(CAST(dr.medicamento AS NVARCHAR(MAX)) + ' (' + CAST(dr.indicaciones_dosis AS NVARCHAR(MAX)) + ')', ' | ') AS medicamentos
                     FROM dbo.Consultas c
                     INNER JOIN dbo.Diagnosticos d ON c.consulta_id = d.consulta_id
-                    LEFT JOIN dbo.Usuarios u ON c.medico_id = u.usuario_id
-                    LEFT JOIN dbo.Especialidades e ON u.especialidad_id = e.especialidad_id
+                    LEFT JOIN dbo.Medicos m ON c.medico_id = m.medico_id
+                    LEFT JOIN dbo.Usuarios u ON m.usuario_id = u.usuario_id
+                    LEFT JOIN dbo.Especialidades e ON m.especialidad_id = e.especialidad_id
+                    LEFT JOIN dbo.Triaje t ON c.consulta_id = t.consulta_id
+                    LEFT JOIN dbo.Recetas r ON c.consulta_id = r.consulta_id
+                    LEFT JOIN dbo.DetalleRecetas dr ON r.receta_id = dr.receta_id
                     WHERE c.paciente_id = @id
+                    GROUP BY 
+                        c.consulta_id, c.fecha_consulta, e.nombre_especialidad, u.nombres, u.apellidos, 
+                        d.conclusion_diagnostico, d.diagnostico_id, 
+                        t.presion_sistolica, t.presion_diastolica, t.frecuencia_cardiaca, t.temperatura, t.peso_kg
                     ORDER BY c.fecha_consulta DESC, d.diagnostico_id DESC";
 
                 using var cmd = new SqlCommand(query, conn);
@@ -764,6 +782,13 @@ namespace ESFE.ClinicaWEB.Controllers
                 while (await reader.ReadAsync())
                 {
                     DateTime fecha = reader.GetDateTime(reader.GetOrdinal("fecha_consulta"));
+                    
+                    string pa = "";
+                    if (!reader.IsDBNull(reader.GetOrdinal("presion_sistolica")) && !reader.IsDBNull(reader.GetOrdinal("presion_diastolica")))
+                    {
+                        pa = $"{reader.GetInt32(reader.GetOrdinal("presion_sistolica"))}/{reader.GetInt32(reader.GetOrdinal("presion_diastolica"))}";
+                    }
+
                     historial.Add(new
                     {
                         consultaId = reader.GetInt32(reader.GetOrdinal("consulta_id")),
@@ -771,7 +796,12 @@ namespace ESFE.ClinicaWEB.Controllers
                         fechaCompleta = fecha.ToString("dd/MM/yyyy HH:mm"),
                         especialidad = reader.GetString(reader.GetOrdinal("especialidad")),
                         medico = reader.GetString(reader.GetOrdinal("medico")),
-                        diagnostico = reader.GetString(reader.GetOrdinal("diagnostico"))
+                        diagnostico = reader.GetString(reader.GetOrdinal("diagnostico")),
+                        presionArterial = pa,
+                        frecuenciaCardiaca = reader.IsDBNull(reader.GetOrdinal("frecuencia_cardiaca")) ? "" : reader.GetInt32(reader.GetOrdinal("frecuencia_cardiaca")).ToString(),
+                        temperatura = reader.IsDBNull(reader.GetOrdinal("temperatura")) ? "" : reader.GetDecimal(reader.GetOrdinal("temperatura")).ToString("0.0"),
+                        peso = reader.IsDBNull(reader.GetOrdinal("peso_kg")) ? "" : reader.GetDecimal(reader.GetOrdinal("peso_kg")).ToString("0.00"),
+                        medicamentos = reader.IsDBNull(reader.GetOrdinal("medicamentos")) ? "" : reader.GetString(reader.GetOrdinal("medicamentos"))
                     });
                 }
 
@@ -822,20 +852,95 @@ namespace ESFE.ClinicaWEB.Controllers
                         await cmdUpd.ExecuteNonQueryAsync();
                     }
 
-                    // Guardar diagnóstico clínico si viene en la solicitud
-                    if (model != null && !string.IsNullOrWhiteSpace(model.Diagnostico))
+                    if (model != null)
                     {
-                        string queryDiag = @"
-                            IF EXISTS (SELECT 1 FROM dbo.Diagnosticos WHERE consulta_id = @cid)
-                                UPDATE dbo.Diagnosticos SET conclusion_diagnostico = @diag WHERE consulta_id = @cid
-                            ELSE
-                                INSERT INTO dbo.Diagnosticos (consulta_id, conclusion_diagnostico, fecha_registro) 
-                                VALUES (@cid, @diag, GETDATE())";
+                        if (!string.IsNullOrWhiteSpace(model.Diagnostico))
+                        {
+                            string queryDiag = @"
+                                IF EXISTS (SELECT 1 FROM dbo.Diagnosticos WHERE consulta_id = @cid)
+                                    UPDATE dbo.Diagnosticos SET conclusion_diagnostico = @diag WHERE consulta_id = @cid
+                                ELSE
+                                    INSERT INTO dbo.Diagnosticos (consulta_id, conclusion_diagnostico, fecha_registro) 
+                                    VALUES (@cid, @diag, GETDATE())";
 
-                        using var cmdDiag = new SqlCommand(queryDiag, conn);
-                        cmdDiag.Parameters.AddWithValue("@cid", consultaId);
-                        cmdDiag.Parameters.AddWithValue("@diag", model.Diagnostico.Trim());
-                        await cmdDiag.ExecuteNonQueryAsync();
+                            using var cmdDiag = new SqlCommand(queryDiag, conn);
+                            cmdDiag.Parameters.AddWithValue("@cid", consultaId);
+                            cmdDiag.Parameters.AddWithValue("@diag", model.Diagnostico.Trim());
+                            await cmdDiag.ExecuteNonQueryAsync();
+                        }
+
+                        // Guardar Triaje
+                        string paStr = model.Pa ?? "";
+                        int sys = 0, dia = 0;
+                        if (paStr.Contains("/"))
+                        {
+                            var parts = paStr.Split('/');
+                            int.TryParse(parts[0], out sys);
+                            int.TryParse(parts[1], out dia);
+                        }
+                        int fc = 0; int.TryParse(model.Fc, out fc);
+                        decimal temp = 0; decimal.TryParse(model.Temp, out temp);
+                        decimal peso = 0; decimal.TryParse(model.Peso, out peso);
+
+                        string queryTriaje = @"
+                            IF EXISTS (SELECT 1 FROM dbo.Triaje WHERE consulta_id = @cid)
+                                UPDATE dbo.Triaje SET presion_sistolica = @sys, presion_diastolica = @dia, frecuencia_cardiaca = @fc, temperatura = @temp, peso_kg = @peso WHERE consulta_id = @cid
+                            ELSE
+                                INSERT INTO dbo.Triaje (consulta_id, enfermero_id, presion_sistolica, presion_diastolica, frecuencia_cardiaca, temperatura, peso_kg, sincronizado_desde_movil, fecha_registro) 
+                                VALUES (@cid, 1, @sys, @dia, @fc, @temp, @peso, 0, GETDATE())";
+
+                        using (var cmdTriaje = new SqlCommand(queryTriaje, conn))
+                        {
+                            cmdTriaje.Parameters.AddWithValue("@cid", consultaId);
+                            cmdTriaje.Parameters.AddWithValue("@sys", sys);
+                            cmdTriaje.Parameters.AddWithValue("@dia", dia);
+                            cmdTriaje.Parameters.AddWithValue("@fc", fc);
+                            cmdTriaje.Parameters.AddWithValue("@temp", temp);
+                            cmdTriaje.Parameters.AddWithValue("@peso", peso);
+                            await cmdTriaje.ExecuteNonQueryAsync();
+                        }
+
+                        // Guardar Receta si hay medicamentos
+                        if (model.Medicamentos != null && model.Medicamentos.Count > 0)
+                        {
+                            int recetaId = 0;
+                            string queryReceta = @"
+                                IF EXISTS (SELECT 1 FROM dbo.Recetas WHERE consulta_id = @cid)
+                                    SELECT receta_id FROM dbo.Recetas WHERE consulta_id = @cid
+                                ELSE
+                                BEGIN
+                                    INSERT INTO dbo.Recetas (consulta_id, fecha_registro) VALUES (@cid, GETDATE());
+                                    SELECT SCOPE_IDENTITY();
+                                END";
+                            using (var cmdReceta = new SqlCommand(queryReceta, conn))
+                            {
+                                cmdReceta.Parameters.AddWithValue("@cid", consultaId);
+                                var res = await cmdReceta.ExecuteScalarAsync();
+                                if (res != null && res != DBNull.Value) recetaId = Convert.ToInt32(res);
+                            }
+
+                            if (recetaId > 0)
+                            {
+                                string queryDelDetalles = "DELETE FROM dbo.DetalleRecetas WHERE receta_id = @rid";
+                                using (var cmdDel = new SqlCommand(queryDelDetalles, conn))
+                                {
+                                    cmdDel.Parameters.AddWithValue("@rid", recetaId);
+                                    await cmdDel.ExecuteNonQueryAsync();
+                                }
+
+                                foreach (var med in model.Medicamentos)
+                                {
+                                    string queryInsertDetalle = "INSERT INTO dbo.DetalleRecetas (receta_id, medicamento, indicaciones_dosis) VALUES (@rid, @med, @dos)";
+                                    using (var cmdInsDet = new SqlCommand(queryInsertDetalle, conn))
+                                    {
+                                        cmdInsDet.Parameters.AddWithValue("@rid", recetaId);
+                                        cmdInsDet.Parameters.AddWithValue("@med", string.IsNullOrWhiteSpace(med.Nombre) ? "Desconocido" : med.Nombre);
+                                        cmdInsDet.Parameters.AddWithValue("@dos", string.IsNullOrWhiteSpace(med.Dosis) ? "-" : med.Dosis);
+                                        await cmdInsDet.ExecuteNonQueryAsync();
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -992,6 +1097,46 @@ namespace ESFE.ClinicaWEB.Controllers
             }
             return sb.ToString();
         }
+
+        [HttpPost("/Account/GuardarPDF")]
+        public IActionResult GuardarPDF([FromBody] GuardarPdfDto model)
+        {
+            if (model == null || string.IsNullOrWhiteSpace(model.HtmlContent) || string.IsNullOrWhiteSpace(model.NombreArchivo) || string.IsNullOrWhiteSpace(model.Tipo))
+            {
+                return BadRequest(new { exito = false, mensaje = "Datos inválidos para generar PDF." });
+            }
+
+            try
+            {
+                var folderName = model.Tipo.ToLower() == "factura" ? "Facturas" : (model.Tipo.ToLower() == "receta" ? "Recetas" : "Comprobantes");
+                var uploadsFolder = Path.Combine(_env.WebRootPath, "Documentos", folderName);
+
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var filePath = Path.Combine(uploadsFolder, model.NombreArchivo);
+
+                var converter = new SelectPdf.HtmlToPdf();
+                converter.Options.PdfPageSize = SelectPdf.PdfPageSize.A4;
+                converter.Options.PdfPageOrientation = SelectPdf.PdfPageOrientation.Portrait;
+                converter.Options.MarginLeft = 20;
+                converter.Options.MarginRight = 20;
+                converter.Options.MarginTop = 20;
+                converter.Options.MarginBottom = 20;
+
+                SelectPdf.PdfDocument doc = converter.ConvertHtmlString(model.HtmlContent);
+                doc.Save(filePath);
+                doc.Close();
+
+                return Ok(new { exito = true, mensaje = "PDF guardado correctamente.", ruta = $"/Documentos/{folderName}/{model.NombreArchivo}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { exito = false, mensaje = "Error al generar PDF: " + ex.Message });
+            }
+        }
     }
 
     public class SolicitudCorreoDto { public string Correo { get; set; } = string.Empty; }
@@ -1046,5 +1191,23 @@ namespace ESFE.ClinicaWEB.Controllers
     public class FinalizarConsultaDto
     {
         public string? Diagnostico { get; set; }
+        public string? Pa { get; set; }
+        public string? Fc { get; set; }
+        public string? Temp { get; set; }
+        public string? Peso { get; set; }
+        public List<MedicamentoDto>? Medicamentos { get; set; }
+    }
+
+    public class MedicamentoDto
+    {
+        public string? Nombre { get; set; }
+        public string? Dosis { get; set; }
+    }
+
+    public class GuardarPdfDto
+    {
+        public string? HtmlContent { get; set; }
+        public string? Tipo { get; set; }
+        public string? NombreArchivo { get; set; }
     }
 }
