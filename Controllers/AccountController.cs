@@ -458,6 +458,12 @@ namespace ESFE.ClinicaWEB.Controllers
                 return BadRequest(new { exito = false, mensaje = "Los datos de la cita no fueron recibidos." });
             }
 
+            // Validar que la fecha de la cita no sea pasada
+            if (cita.FechaHora != default && cita.FechaHora.Date < DateTime.Today)
+            {
+                return BadRequest(new { exito = false, mensaje = "No se puede agendar una cita en una fecha anterior al día de hoy." });
+            }
+
             int citaIdFicticia = new Random().Next(1000, 9999);
             return Json(new { exito = true, citaId = citaIdFicticia, redirectUrl = $"/Account/Confirma_pago?id={citaIdFicticia}" });
         }
@@ -590,6 +596,33 @@ namespace ESFE.ClinicaWEB.Controllers
                     }
                 }
 
+                if (!string.IsNullOrWhiteSpace(model.Correo) && idPacienteGenerado > 0)
+                {
+                    string userSyncQuery = @"
+                        DECLARE @uid INT = (SELECT TOP 1 usuario_id FROM dbo.Usuarios WHERE username = @dui OR correo = @correo ORDER BY usuario_id DESC);
+                        IF @uid IS NULL
+                        BEGIN
+                            INSERT INTO dbo.Usuarios (username, password_hash, nombres, apellidos, correo, rol_id, estado, fecha_creacion)
+                            VALUES (@dui, 'NO_PASS', @nombres, @apellidos, @correo, 6, 1, GETDATE());
+                            SET @uid = SCOPE_IDENTITY();
+                        END
+                        ELSE
+                        BEGIN
+                            UPDATE dbo.Usuarios 
+                            SET correo = @correo, nombres = @nombres, apellidos = @apellidos
+                            WHERE usuario_id = @uid;
+                        END
+
+                        UPDATE dbo.Pacientes SET usuario_creacion_id = @uid WHERE paciente_id = @idPaciente;";
+                    using var cmdUser = new SqlCommand(userSyncQuery, conn);
+                    cmdUser.Parameters.AddWithValue("@dui", duiVal);
+                    cmdUser.Parameters.AddWithValue("@correo", model.Correo.Trim());
+                    cmdUser.Parameters.AddWithValue("@nombres", nombresVal);
+                    cmdUser.Parameters.AddWithValue("@apellidos", apellidosVal);
+                    cmdUser.Parameters.AddWithValue("@idPaciente", idPacienteGenerado);
+                    await cmdUser.ExecuteNonQueryAsync();
+                }
+
                 DateTime fechaCitaParsed = DateTime.Now;
                 if (!string.IsNullOrWhiteSpace(model.FechaHora) && DateTime.TryParse(model.FechaHora, out var dtParsed))
                 {
@@ -601,6 +634,39 @@ namespace ESFE.ClinicaWEB.Controllers
                     if (!DateTime.TryParse(fechaCombinada, CultureInfo.InvariantCulture, DateTimeStyles.None, out fechaCitaParsed))
                     {
                         DateTime.TryParse(model.Fecha, out fechaCitaParsed);
+                    }
+                }
+
+                // ── Validación 1: La fecha de la cita NO puede ser pasada ─────────────────
+                if (fechaCitaParsed.Date < DateTime.Today)
+                {
+                    return BadRequest(new
+                    {
+                        exito = false,
+                        mensaje = "No se puede registrar una cita en una fecha anterior al día de hoy. Por favor seleccione una fecha válida."
+                    });
+                }
+
+                // ── Validación 2: El paciente no puede tener 2 citas el mismo día ─────────
+                if (idPacienteGenerado > 0)
+                {
+                    string qDup = @"
+                        SELECT COUNT(*) FROM dbo.Consultas
+                        WHERE paciente_id = @pid
+                          AND CAST(fecha_consulta AS DATE) = CAST(@fechaCita AS DATE)
+                          AND estado_consulta_id NOT IN (4, 5)";
+                    using var cmdDup = new SqlCommand(qDup, conn);
+                    cmdDup.Parameters.AddWithValue("@pid", idPacienteGenerado);
+                    cmdDup.Parameters.AddWithValue("@fechaCita", fechaCitaParsed.Date);
+                    var dupCount = (int)(await cmdDup.ExecuteScalarAsync() ?? 0);
+                    if (dupCount > 0)
+                    {
+                        string fechaLeg = fechaCitaParsed.ToString("dd 'de' MMMM yyyy", new CultureInfo("es-ES"));
+                        return BadRequest(new
+                        {
+                            exito = false,
+                            mensaje = $"El paciente ya tiene una cita registrada para el {fechaLeg}. No se permiten dos citas el mismo día."
+                        });
                     }
                 }
 

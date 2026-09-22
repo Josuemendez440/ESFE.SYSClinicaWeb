@@ -13,14 +13,14 @@ td {
 }
 
 html {
-    font-size: 14.5px;
-    zoom: 0.88;
+    font-size: 13.5px; /* Reemplaza el atributo 'zoom' por escalado de fuente estandarizado */
     -webkit-text-size-adjust: 100%;
+    overflow-y: auto; /* Permite scroll dinámico en la ventana */
 }
 
 @media (min-width: 1600px) {
     html {
-        zoom: 0.95;
+        font-size: 14.5px;
     }
 }
 
@@ -293,7 +293,7 @@ body {
 .table-container {
     margin-top: 12px;
     border-radius: 8px;
-    overflow: hidden;
+    overflow-x: auto; /* Permite desplazamiento si la pantalla es muy estrecha */
     border: 1px solid var(--border);
 }
 
@@ -307,13 +307,14 @@ body {
         color: var(--primary);
         font-size: 11px;
         font-weight: 800;
-        padding: 12px 14px;
+        padding: 12px 10px;
         text-align: left;
         letter-spacing: 0.3px;
+        white-space: nowrap;
     }
 
     .table td {
-        padding: 12px 14px;
+        padding: 12px 10px;
         border-bottom: 1px solid var(--border);
         font-size: 13px;
         color: var(--text-main);
@@ -328,16 +329,17 @@ body {
     text-align: right;
 }
 
-/* Botón Seleccionar */
+/* Botón Seleccionar (Ajustado para evitar desbordes) */
 .btn-select-patient {
     background-color: var(--primary);
     color: #ffffff;
     border: none;
-    padding: 7px 16px;
-    border-radius: 8px;
-    font-size: 12.5px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.2s ease;
 }
 
@@ -351,7 +353,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 10px;
+    padding: 4px 8px;
     border-radius: 20px;
     font-size: 11px;
     font-weight: 700;
@@ -636,11 +638,12 @@ body {
     background-color: #fef3c7;
     color: #92400e;
     border: 1px solid #fcd34d;
-    padding: 7px 14px;
+    padding: 6px 10px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.2s ease;
 }
 
@@ -658,11 +661,12 @@ body {
     background-color: #f0fdfa;
     color: #0f766e;
     border: 1.5px solid #5eead4;
-    padding: 7px 14px;
+    padding: 6px 10px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+    white-space: nowrap;
     transition: all 0.2s ease;
 }
 
@@ -671,6 +675,25 @@ body {
         border-color: #0d9488;
         color: #0f766e;
         transform: translateY(-1px);
+    }
+
+/* Personalización del Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
     }
 
 @media (max-width: 1100px) {

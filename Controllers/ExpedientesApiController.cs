@@ -580,6 +580,27 @@ namespace ESFE.ClinicaWEB.Controllers
                 }
                 else
                 {
+                    // ── Validar que el paciente no tenga ya una cita activa HOY ─────────
+                    string qDupHoy = @"
+                        SELECT COUNT(*) FROM dbo.Consultas
+                        WHERE paciente_id = @pid
+                          AND CAST(fecha_consulta AS DATE) = CAST(GETDATE() AS DATE)
+                          AND estado_consulta_id NOT IN (4, 5)";
+                    using (var cmdDup = new SqlCommand(qDupHoy, conn))
+                    {
+                        cmdDup.Parameters.AddWithValue("@pid", pacienteId);
+                        var dupCount = (int)(await cmdDup.ExecuteScalarAsync() ?? 0);
+                        if (dupCount > 0)
+                        {
+                            return BadRequest(new
+                            {
+                                exito = false,
+                                mensaje = "Este paciente ya tiene una cita registrada para hoy. No se permiten dos citas el mismo día."
+                            });
+                        }
+                    }
+                    // ─────────────────────────────────────────────────────────────────
+
                     string qIns = @"
                         INSERT INTO dbo.Consultas 
                             (paciente_id, medico_id, recepcionista_id, fecha_consulta, tipo_atencion_id, estado_consulta_id, es_emergencia)

@@ -50,12 +50,22 @@
             const token = urlParams.get('token') || sessionStorage.getItem('otpVerifiedToken');
 
             if (!newPass || !confirmPass) {
-                alert('Por favor llena ambos campos.');
+                Swal.fire({
+                    title: 'Atención',
+                    text: 'Por favor llena ambos campos.',
+                    icon: 'warning',
+                    confirmButtonColor: '#277c95'
+                });
                 return;
             }
 
             if (newPass !== confirmPass) {
-                alert('Las contraseñas no coinciden.');
+                Swal.fire({
+                    title: 'Atención',
+                    text: 'Las contraseñas no coinciden.',
+                    icon: 'warning',
+                    confirmButtonColor: '#277c95'
+                });
                 return;
             }
 
@@ -73,15 +83,34 @@
                 const data = await response.json();
 
                 if (data.exito) {
-                    alert('¡Contraseña restablecida con éxito!');
-                    sessionStorage.clear();
-                    window.location.href = '/Account/Login';
+                    Swal.fire({
+                        title: '¡Éxito!',
+                        text: '¡Contraseña restablecida con éxito!',
+                        icon: 'success',
+                        confirmButtonColor: '#277c95',
+                        confirmButtonText: 'Aceptar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            sessionStorage.clear();
+                            window.location.href = '/Account/Login';
+                        }
+                    });
                 } else {
-                    alert(data.mensaje || 'No se pudo actualizar la contraseña.');
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.mensaje || 'No se pudo actualizar la contraseña.',
+                        icon: 'error',
+                        confirmButtonColor: '#277c95'
+                    });
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al procesar la nueva contraseña.');
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Error al procesar la nueva contraseña.',
+                    icon: 'error',
+                    confirmButtonColor: '#277c95'
+                });
             }
         });
     }

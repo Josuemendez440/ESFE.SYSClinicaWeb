@@ -339,6 +339,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const fechaHoraStr = `${now.toLocaleDateString("es-ES")} ${String(horas12).padStart(2, "0")}:${minutos} ${ampm}`;
 
             // 1. Persistir en Backend (API SQL Server) la asignación del médico y especialidad
+            let asignacionExitosa = true;
+            let mensajeError = "";
             try {
                 const payloadAsignacion = {
                     pacienteId: parseInt(_pacienteParaAsignar.id, 10) || 0,
@@ -349,13 +351,32 @@ document.addEventListener("DOMContentLoaded", () => {
                     costo: parseFloat(costo)
                 };
 
-                await fetch("/api/ExpedientesApi/asignar-cita", {
+                const respAsig = await fetch("/api/ExpedientesApi/asignar-cita", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payloadAsignacion)
                 });
+
+                if (!respAsig.ok) {
+                    // Leer el mensaje de error del servidor
+                    try {
+                        const errData = await respAsig.json();
+                        mensajeError = errData.mensaje || `Error del servidor (${respAsig.status}).`;
+                    } catch (_) {
+                        mensajeError = `Error del servidor (${respAsig.status}).`;
+                    }
+                    asignacionExitosa = false;
+                }
             } catch (err) {
                 console.error("Error al persistir cita asignada en backend:", err);
+                mensajeError = "No se pudo conectar con el servidor. Intente nuevamente.";
+                asignacionExitosa = false;
+            }
+
+            // Si el servidor rechazó la asignación, mostrar error y NO continuar
+            if (!asignacionExitosa) {
+                alert(`⚠️ ${mensajeError}`);
+                return;
             }
 
             // Cerrar modal de asignación
