@@ -191,7 +191,9 @@ document.addEventListener("DOMContentLoaded", function () {
             var fecha = (datosCita && datosCita.fecha) ? datosCita.fecha : "";
             var hora = (datosCita && datosCita.hora) ? datosCita.hora : "";
             var fechaHora = (datosCita && datosCita.fechaHora) ? datosCita.fechaHora : (document.getElementById("resumenFechaHora")?.textContent.trim() || "");
-            var correo = sessionStorage.getItem("correo") || (datosCita && datosCita.correo) || "";
+            var rolSesion = (sessionStorage.getItem("rol") || "").toLowerCase();
+            var esPersonalClinica = rolSesion.includes("admin") || rolSesion.includes("medic") || rolSesion.includes("doctor") || rolSesion.includes("recep") || rolSesion.includes("enferm");
+            var correo = (datosCita && datosCita.correo) ? datosCita.correo : (!esPersonalClinica ? (sessionStorage.getItem("correo") || "") : "");
 
             if (!especialidad && datosCita && datosCita.especialidadMedico) {
                 var partesEsp = datosCita.especialidadMedico.split("–");

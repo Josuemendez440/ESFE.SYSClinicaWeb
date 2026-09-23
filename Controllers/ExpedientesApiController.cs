@@ -1,22 +1,39 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
 
 namespace ESFE.ClinicaWEB.Controllers
 {
+    /// <summary>
+    /// Controlador de API RESTful encargado de la gestión integral de expedientes clínicos de pacientes.
+    /// Provee puntos de enlace (endpoints) HTTP para listar, consultar por ID, registrar y actualizar expedientes médicos.
+    /// </summary>
+    /// <remarks>
+    /// Autor: Natalia Elizabeth Hernandez
+    /// Versión: 1.0
+    /// Fecha: Septiembre 2026
+    /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
     public class ExpedientesApiController : ControllerBase
     {
+        /// <summary>
+        /// Instancia del proveedor de configuración para acceder a las cadenas de conexión con SQL Server.
+        /// </summary>
         private readonly IConfiguration _configuration;
 
+        /// <summary>
+        /// Inicializa una nueva instancia del controlador <see cref="ExpedientesApiController"/> con su respectiva inyección de dependencias.
+        /// </summary>
+        /// <param name="configuration">Acceso a la configuración y cadena de conexión a la base de datos.</param>
         public ExpedientesApiController(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
+        /// <summary>
+        /// Obtiene el listado completo de pacientes y expedientes clínicos con el detalle de su última consulta médica y pagos.
+        /// </summary>
+        /// <returns>Una lista en formato JSON (<see cref="IActionResult"/>) con los expedientes registrados o un código de error 500.</returns>
         // GET: api/ExpedientesApi
         [HttpGet]
         public IActionResult GetExpedientes()
@@ -197,6 +214,11 @@ namespace ESFE.ClinicaWEB.Controllers
             }
         }
 
+        /// <summary>
+        /// Recupera la información detallada de un expediente clínico en particular a partir de su ID de paciente.
+        /// </summary>
+        /// <param name="id">Identificador único del paciente en la base de datos.</param>
+        /// <returns>Objeto con la información del paciente y su historial o 404/500 en caso de error.</returns>
         // GET: api/ExpedientesApi/5
         [HttpGet("{id}")]
         public IActionResult GetExpedienteById(int id)
@@ -361,6 +383,11 @@ namespace ESFE.ClinicaWEB.Controllers
             }
         }
 
+        /// <summary>
+        /// Registra un nuevo paciente en la base de datos y le genera un código único de expediente correlativo.
+        /// </summary>
+        /// <param name="model">Objeto de transferencia de datos (<see cref="PacienteCrearDto"/>) con los datos del paciente.</param>
+        /// <returns>Respuesta HTTP 200 con el ID y código de expediente asignado, o 400/500 en caso de error.</returns>
         // POST: api/ExpedientesApi
         [HttpPost]
         public IActionResult PostExpediente([FromBody] PacienteCrearDto model)
@@ -416,6 +443,12 @@ namespace ESFE.ClinicaWEB.Controllers
             }
         }
 
+        /// <summary>
+        /// Actualiza el estado clínico o asignación del expediente de un paciente identificado por su ID.
+        /// </summary>
+        /// <param name="id">Identificador único del paciente a actualizar.</param>
+        /// <param name="model">Modelo DTO con la nueva información de estado o especialidad.</param>
+        /// <returns>Resultado de la operación de actualización en la base de datos.</returns>
         // PUT: api/ExpedientesApi/5
         [HttpPut("{id}")]
         public IActionResult PutExpediente(int id, [FromBody] PacienteEstadoDto model)

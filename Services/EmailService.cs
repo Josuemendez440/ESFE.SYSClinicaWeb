@@ -12,25 +12,100 @@ using SelectPdf;
 
 namespace ESFE.ClinicaWEB.Services
 {
+    /// <summary>
+    /// Contrato de servicio para el envío de notificaciones por correo electrónico en la clínica.
+    /// Define operaciones para correos generales, códigos OTP, comprobantes de cita y facturas electrónicas.
+    /// </summary>
+    /// <remarks>
+    /// Autor: Natalia Elizabeth Hernandez
+    /// Versión: 1.0
+    /// Fecha: Septiembre 2026
+    /// </remarks>
     public interface IEmailService
     {
+        /// <summary>
+        /// Envía un correo electrónico de formato HTML general a un destinatario específico.
+        /// </summary>
+        /// <param name="toEmail">Dirección de correo electrónico del destinatario.</param>
+        /// <param name="subject">Asunto principal del mensaje.</param>
+        /// <param name="htmlMessage">Cuerpo del correo en formato HTML estructurado.</param>
+        /// <returns>Una tarea asincrónica (<see cref="Task"/>) que representa la operación de envío.</returns>
         Task SendEmailAsync(string toEmail, string subject, string htmlMessage);
+
+        /// <summary>
+        /// Envía un correo con el código de verificación OTP para recuperación de contraseña o autenticación.
+        /// </summary>
+        /// <param name="toEmail">Correo electrónico del usuario solicitante.</param>
+        /// <param name="otpCode">Código numérico o alfanumérico temporal generado por el sistema.</param>
+        /// <returns>Una tarea asincrónica (<see cref="Task"/>) que representa el envío del código OTP.</returns>
         Task SendOtpEmailAsync(string toEmail, string otpCode);
+
+        /// <summary>
+        /// Genera y envía el comprobante digital de reserva de cita médica con el detalle de anticipo.
+        /// </summary>
+        /// <param name="toEmail">Correo electrónico del paciente destinatario.</param>
+        /// <param name="cita">Objeto <see cref="CitasViewModel"/> con la información completa de la cita reservada.</param>
+        /// <param name="titularTarjeta">Nombre del titular de la tarjeta bancaria que realizó el pago del anticipo.</param>
+        /// <returns>Una tarea asincrónica (<see cref="Task"/>) que representa el envío del comprobante.</returns>
         Task SendComprobantePagoAsync(string toEmail, CitasViewModel cita, string titularTarjeta = "");
+
+        /// <summary>
+        /// Genera la factura en PDF y la envía adjunta por correo electrónico al paciente.
+        /// </summary>
+        /// <param name="toEmail">Correo de destino para la entrega de la factura.</param>
+        /// <param name="numeroFactura">Número correlativo o identificador oficial del comprobante fiscal.</param>
+        /// <param name="paciente">Nombre completo del paciente atendido.</param>
+        /// <param name="especialidad">Especialidad o servicio médico facturado.</param>
+        /// <param name="total">Total líquido a pagar tras deducción de anticipos.</param>
+        /// <param name="metodoPago">Método de pago empleado (ej. Efectivo, Tarjeta, Transferencia).</param>
+        /// <param name="montoRecibido">Monto en efectivo o fondos entregados por el paciente.</param>
+        /// <param name="cambio">Monto devuelto al paciente en concepto de vuelto o cambio.</param>
+        /// <param name="codigoExpediente">Código del expediente médico asociado al paciente.</param>
+        /// <param name="costoTotal">Costo íntegro del servicio antes de aplicar anticipos.</param>
+        /// <param name="anticipoPagado">Monto cancelado previamente como abono de reserva.</param>
+        /// <returns>Una tarea asincrónica (<see cref="Task"/>) que representa la generación del PDF y envío del correo.</returns>
         Task SendFacturaEmailAsync(string toEmail, string numeroFactura, string paciente, string especialidad, decimal total, string metodoPago, decimal montoRecibido, decimal cambio, string codigoExpediente = "", decimal costoTotal = 0, decimal anticipoPagado = 0);
     }
 
+    /// <summary>
+    /// Servicio encargado de gestionar el envío de correos electrónicos vía protocolo SMTP
+    /// y la generación dinámica de comprobantes y facturas en formato PDF.
+    /// </summary>
+    /// <remarks>
+    /// Autor: Natalia Elizabeth Hernandez
+    /// Versión: 1.0
+    /// Fecha: Septiembre 2026
+    /// </remarks>
     public class EmailService : IEmailService
     {
+        /// <summary>
+        /// Proveedor de configuración del sistema para la lectura de variables de entorno y credenciales SMTP.
+        /// </summary>
         private readonly IConfiguration _configuration;
+
+        /// <summary>
+        /// Entorno de alojamiento web utilizado para resolver rutas físicas de plantillas y recursos estáticos.
+        /// </summary>
         private readonly IWebHostEnvironment _env;
 
+        /// <summary>
+        /// Inicializa una nueva instancia de la clase <see cref="EmailService"/> inyectando las dependencias requeridas.
+        /// </summary>
+        /// <param name="configuration">Instancia del gestor de configuración de la aplicación.</param>
+        /// <param name="env">Instancia del entorno de hospedaje web para acceso al sistema de archivos.</param>
         public EmailService(IConfiguration configuration, IWebHostEnvironment env)
         {
             _configuration = configuration;
             _env = env;
         }
 
+        /// <summary>
+        /// Realiza la conexión SMTP asíncrona para despachar un correo con contenido HTML y logotipo incrustado.
+        /// </summary>
+        /// <param name="toEmail">Correo electrónico del destinatario.</param>
+        /// <param name="subject">Título o asunto del mensaje.</param>
+        /// <param name="htmlMessage">Contenido HTML renderizado del correo.</param>
+        /// <returns>Tarea que representa la finalización del envío del mensaje por SMTP.</returns>
         public async Task SendEmailAsync(string toEmail, string subject, string htmlMessage)
         {
             var smtpServer = _configuration["EmailSettings:SmtpServer"];
@@ -70,6 +145,12 @@ namespace ESFE.ClinicaWEB.Services
             await client.SendMailAsync(message);
         }
 
+        /// <summary>
+        /// Carga la plantilla HTML de verificación y envía el código OTP de seguridad al usuario.
+        /// </summary>
+        /// <param name="toEmail">Correo del usuario destinatario.</param>
+        /// <param name="otpCode">Token o código numérico OTP generado.</param>
+        /// <returns>Tarea asíncrona del proceso de envío.</returns>
         public async Task SendOtpEmailAsync(string toEmail, string otpCode)
         {
             string filePath = Path.Combine(_env.WebRootPath, "templates", "EmailOtpTemplate.html");
@@ -80,6 +161,13 @@ namespace ESFE.ClinicaWEB.Services
             await SendEmailAsync(toEmail, subject, htmlMessage);
         }
 
+        /// <summary>
+        /// Construye el comprobante de pago de anticipo de cita médica y lo envía por correo al paciente.
+        /// </summary>
+        /// <param name="toEmail">Correo electrónico del paciente destinatario.</param>
+        /// <param name="cita">Modelo con la información de la cita y anticipo liquidado.</param>
+        /// <param name="titularTarjeta">Nombre del titular de la tarjeta emisora del pago.</param>
+        /// <returns>Tarea asíncrona de envío del comprobante.</returns>
         public async Task SendComprobantePagoAsync(string toEmail, CitasViewModel cita, string titularTarjeta = "")
         {
             string filePath = Path.Combine(_env.WebRootPath, "templates", "EmailComprobanteTemplate.html");
@@ -121,6 +209,21 @@ namespace ESFE.ClinicaWEB.Services
             await SendEmailAsync(toEmail, subject, htmlMessage);
         }
 
+        /// <summary>
+        /// Genera de manera dinámica el documento fiscal en formato PDF y lo remite adjunto al correo del paciente.
+        /// </summary>
+        /// <param name="toEmail">Correo electrónico al cual despachar la factura.</param>
+        /// <param name="numeroFactura">Número de factura oficial.</param>
+        /// <param name="paciente">Nombre completo del paciente.</param>
+        /// <param name="especialidad">Servicio clínico prestado.</param>
+        /// <param name="total">Total líquido a cancelar.</param>
+        /// <param name="metodoPago">Forma de pago empleada por el cliente.</param>
+        /// <param name="montoRecibido">Monto recibido en ventanilla o pasarela.</param>
+        /// <param name="cambio">Monto devuelto en cambio al paciente.</param>
+        /// <param name="codigoExpediente">Código del expediente médico asignado.</param>
+        /// <param name="costoTotal">Costo global del servicio antes del anticipo.</param>
+        /// <param name="anticipoPagado">Monto que fue deducido en concepto de anticipo previo.</param>
+        /// <returns>Tarea asíncrona de generación de factura y envío por correo.</returns>
         public async Task SendFacturaEmailAsync(
             string toEmail, 
             string numeroFactura, 

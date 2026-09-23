@@ -599,21 +599,35 @@ namespace ESFE.ClinicaWEB.Controllers
                 if (!string.IsNullOrWhiteSpace(model.Correo) && idPacienteGenerado > 0)
                 {
                     string userSyncQuery = @"
-                        DECLARE @uid INT = (SELECT TOP 1 usuario_id FROM dbo.Usuarios WHERE username = @dui OR correo = @correo ORDER BY usuario_id DESC);
-                        IF @uid IS NULL
+                        DECLARE @uid INT = (
+                            SELECT TOP 1 u.usuario_id 
+                            FROM dbo.Usuarios u
+                            INNER JOIN dbo.Roles r ON u.rol_id = r.rol_id
+                            WHERE (u.username = @dui OR LOWER(u.correo) = LOWER(@correo))
+                              AND LOWER(r.nombre_rol) IN ('paciente', 'cliente')
+                              AND LOWER(u.username) NOT LIKE '%admin%'
+                              AND u.rol_id != 1
+                            ORDER BY u.usuario_id DESC
+                        );
+
+                        -- Si no existe un usuario paciente previo y el correo/username NO pertenecen a un admin ni a otro rol de sistema
+                        IF @uid IS NULL AND NOT EXISTS (
+                            SELECT 1 FROM dbo.Usuarios 
+                            WHERE (username = @dui OR LOWER(correo) = LOWER(@correo))
+                              AND (rol_id = 1 OR LOWER(username) LIKE '%admin%')
+                        )
                         BEGIN
+                            DECLARE @rolPacienteId INT = ISNULL((SELECT TOP 1 rol_id FROM dbo.Roles WHERE LOWER(nombre_rol) IN ('paciente', 'cliente')), 6);
                             INSERT INTO dbo.Usuarios (username, password_hash, nombres, apellidos, correo, rol_id, estado, fecha_creacion)
-                            VALUES (@dui, 'NO_PASS', @nombres, @apellidos, @correo, 6, 1, GETDATE());
+                            VALUES (@dui, 'NO_PASS', @nombres, @apellidos, @correo, @rolPacienteId, 1, GETDATE());
                             SET @uid = SCOPE_IDENTITY();
                         END
-                        ELSE
-                        BEGIN
-                            UPDATE dbo.Usuarios 
-                            SET correo = @correo, nombres = @nombres, apellidos = @apellidos
-                            WHERE usuario_id = @uid;
-                        END
 
-                        UPDATE dbo.Pacientes SET usuario_creacion_id = @uid WHERE paciente_id = @idPaciente;";
+                        -- Asignar el usuario creación al paciente solo si es un id válido
+                        IF @uid IS NOT NULL
+                        BEGIN
+                            UPDATE dbo.Pacientes SET usuario_creacion_id = @uid WHERE paciente_id = @idPaciente;
+                        END";
                     using var cmdUser = new SqlCommand(userSyncQuery, conn);
                     cmdUser.Parameters.AddWithValue("@dui", duiVal);
                     cmdUser.Parameters.AddWithValue("@correo", model.Correo.Trim());
